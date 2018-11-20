@@ -17,7 +17,8 @@ space = pymunk.Space()  # This is where pymunk "holds" its objects (shapes, rigi
 space.gravity = (0, 0)  # The gravity of the space, in (x, y) coordinates
 # (0, 0) means that there is no gravity
 
-frames_per_second = 3  # You can mess around with this value
+frames_per_second = 60.0  # You can mess around with this value
+# Make sure this is a float or the display won't work properly!
 
 
 def add_ball(space):
@@ -32,6 +33,7 @@ def add_ball(space):
 
     x_velocity = random.randint(-200, 200)
     y_velocity = random.randint(-200, 200)
+    print(x_velocity, y_velocity)
     body.velocity = (x_velocity, y_velocity)  # You can set an object's velocity
 
     shape = pymunk.Circle(body, radius)  # The shape is what is drawn on the display
@@ -55,10 +57,14 @@ def main():
                 print("Quitting the game")
                 pygame.quit()
 
-        space.debug_draw(draw_options)  # Pymunk actually tells pygame to draw its objects
         space.step(1/frames_per_second)  # Pymunk moves time forward by 1/fps in the simulation
+        screen.fill((255, 255, 255))  # Fills the screen with the color white
+        space.debug_draw(draw_options)  # Pymunk actually tells pygame to draw its objects
 
         pygame.display.flip()  # Pygame display is updated
-        screen.fill((255, 255, 255))  # Fills the screen with the color white
 
         clock.tick(frames_per_second)
+
+
+if __name__ == "__main__":
+    main()
