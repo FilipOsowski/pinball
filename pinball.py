@@ -1,11 +1,4 @@
-"""Very simple breakout clone. A circle shape serves as the paddle, then
-breakable bricks constructed of Poly-shapes.
-The code showcases several pymunk concepts such as elasitcity, impulses,
-constant object speed, joints, collision handlers and post step callbacks.
-"""
-
-import math, sys, random
-import os
+import sys, random
 
 import pygame
 from pygame.locals import *
@@ -19,10 +12,40 @@ width, height = 600, 600
 
 collision_types = {
     "ball": 1,
-    "brick": 2,
-    "bottom": 3,
-    "player": 4,
+    "bumper": 2,
 }
+
+
+def add_bumper(space, location, radius):
+    body = pymunk.Body(body_type=pymunk.Body.STATIC)
+
+    body.position = location
+
+    shape = pymunk.Circle(body, radius)
+    shape.collision_type = collision_types["bumper"]
+
+    space.add(body, shape)
+
+def add_bumper_collision_handler(space):
+    ch = space.add_collision_handler(collision_types["ball"], collision_types["bumper"])
+
+    def normalized_vector_between(a, b):
+        v = [b.position[0] - a.position[0], b.position[1] - a.position[1]]
+        r = (v[0]**2 + v[1]**2)**(1/2)
+        v = [v[0]/r, v[1]/r]
+        return v
+
+    def post_solve(arbiter, space, data):
+        bumper_body = arbiter.shapes[1].body
+        ball_body = arbiter.shapes[0].body
+
+        strength_of_bumper = 15
+        impulse = normalized_vector_between(bumper_body, ball_body)
+        impulse = [impulse[0] * strength_of_bumper, impulse[1] * strength_of_bumper]
+
+        ball_body.apply_impulse_at_world_point(impulse, (ball_body.position[0], ball_body.position[1]))
+
+    ch.post_solve = post_solve
 
 
 def spawn_ball(space, position, direction):
@@ -31,7 +54,7 @@ def spawn_ball(space, position, direction):
     ball_shape = pymunk.Circle(ball_body, 10)
 
     ball_shape.color = THECOLORS["green"]
-    ball_shape.elasticity = 1.0
+    ball_shape.elasticity = 0.95
     ball_shape.collision_type = collision_types["ball"]
 
     ball_body.apply_impulse_at_local_point(Vec2d(direction))
@@ -39,24 +62,19 @@ def spawn_ball(space, position, direction):
     # Keep ball velocity at a static value
     def constant_velocity(body, gravity, damping, dt):
         body.velocity += gravity * 1
-        print(gravity)
-        print(body.velocity.normalized())
-
 
     ball_body.velocity_func = constant_velocity
-
 
     space.add(ball_body, ball_shape)
 
 
 def setup_level(space):
-    # Remove balls and bricks
-    # for s in space.shapes[:]:
-    #     if s.body.body_type == pymunk.Body.DYNAMIC and s.body not in [player_body]:
-    #         space.remove(s.body, s)
-
     # Spawn a ball for the player to have something to play with
-    spawn_ball(space, (0, 40), random.choice([(1, 10), (-1, 10)]))
+    spawn_ball(space, (random.randint(50, 550), 500), (random.randint(-100, 100), random.randint(-100, 100)))
+
+    add_bumper_collision_handler(space) # Add a collision handler for bumpers to work properly
+    add_bumper(space, (200, 300), 20) # Add a bumper with position and radius
+    add_bumper(space, (400, 300), 20)
 
 def main():
     ### PyGame init
@@ -80,14 +98,17 @@ def main():
                     ]
     for line in static_lines:
         line.color = THECOLORS['lightgray']
-        line.elasticity = 1.0
+        line.elasticity = 0.95
+        line.friction = 0.3
+
+    """
+    bottom_line = pymunk.Segment(space.static_body, (225, 50), (375, 50), 4)
+    static_lines.append(bottom_line)
+    """
 
     space.add(static_lines)
 
-    # bottom - a sensor that removes anything touching it
-
-
-
+    """
     def remove_first(arbiter, space, data):
         ball_shape = arbiter.shapes[0]
         space.remove(ball_shape, ball_shape.body)
@@ -98,19 +119,8 @@ def main():
         collision_types["bottom"])
     h.begin = remove_first
 
-    ### Player ship
-    # player_body = pymunk.Body(500, pymunk.inf)
-    # player_body.position = 300, 100
-    #
-    # player_shape = pymunk.Segment(player_body, (-50, 0), (50, 0), 8)
-    # player_shape.color = THECOLORS["red"]
-    # player_shape.elasticity = 1.0
-    # player_shape.collision_type = collision_types["player"]
-
     def pre_solve(arbiter, space, data):
-        # We want to update the collision normal to make the bounce direction
-        # dependent of where on the paddle the ball hits. Note that this
-        # calculation isn't perfect, but just a quick example.
+        print("THIS THING RAN")
         set_ = arbiter.contact_point_set
         if len(set_.points) > 0:
             player_shape = arbiter.shapes[0]
@@ -126,10 +136,8 @@ def main():
         collision_types["player"],
         collision_types["ball"])
     h.pre_solve = pre_solve
+    """
 
-    # restrict movement of player to a straigt line
-    # move_joint = pymunk.GrooveJoint(space.static_body, player_body, (100, 100), (500, 100), (0, 0))
-    # space.add(player_body, player_shape, move_joint)
     global state
     # # Start game
     setup_level(space)
@@ -140,28 +148,8 @@ def main():
                 running = False
             elif event.type == KEYDOWN and (event.key in [K_ESCAPE, K_q]):
                 running = False
-            elif event.type == KEYDOWN and event.key == K_p:
-                pygame.image.save(screen, "breakout.png")
-
             elif event.type == KEYDOWN and event.key == K_SPACE:
-                  spawn_ball(space, random.choice([(50, 550), (50, 550)]), random.choice([(1, 10), (-1, 10)]))
-
-        # if event.type == KEYDOWN and event.key == K_LEFT:
-          #       # player_body.velocity = (-600, 0)
-          #       print
-          #   elif event.type == KEYUP and event.key == K_LEFT:
-          #       # player_body.velocity = 0, 0
-          #       print
-          #
-          #   elif event.type == KEYDOWN and event.key == K_RIGHT:
-          #       # player_body.velocity = (600, 0)
-          #   elif event.type == KEYUP and event.key == K_RIGHT:
-          #       # player_body.velocity = 0, 0
-          #
-          #   elif event.type == KEYDOWN and event.key == K_r:
-          #       # setup_level(space, player_body)
-          #   elif event.type == KEYDOWN and event.key == K_SPACE:
-          #       # spawn_ball(space, player_body.position + (0, 40), random.choice([(1, 10), (-1, 10)]))
+                spawn_ball(space, (random.randint(50, 550), 500), (random.randint(-100, 100), random.randint(-100, 100)))
 
         ## Clear screen
         screen.fill(THECOLORS["black"])
@@ -181,10 +169,6 @@ def main():
 
         ### Info and flip screen
         screen.blit(font.render("fps: " + str(clock.get_fps()), 1, THECOLORS["white"]), (0, 0))
-        screen.blit(font.render("Move with left/right arrows, space to spawn a ball", 1, THECOLORS["darkgrey"]),
-                    (5, height - 35))
-        screen.blit(font.render("Press R to reset, ESC or Q to quit", 1, THECOLORS["darkgrey"])
-                    , (5, height - 20))
 
         pygame.display.flip()
         clock.tick(fps)
