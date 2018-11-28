@@ -28,8 +28,8 @@ collision_types = {
 def spawn_ball(space, position, direction):
     ball_body = pymunk.Body(1, pymunk.inf)
     ball_body.position = position
-
     ball_shape = pymunk.Circle(ball_body, 5)
+
     ball_shape.color = THECOLORS["green"]
     ball_shape.elasticity = 1.0
     ball_shape.collision_type = collision_types["ball"]
@@ -38,9 +38,13 @@ def spawn_ball(space, position, direction):
 
     # Keep ball velocity at a static value
     def constant_velocity(body, gravity, damping, dt):
-        body.velocity = body.velocity.normalized() * 400
+        body.velocity += gravity * .005
+        print(gravity)
+        print(body.velocity.normalized())
+
 
     ball_body.velocity_func = constant_velocity
+
 
     space.add(ball_body, ball_shape)
 
@@ -63,7 +67,7 @@ def main():
     font = pygame.font.SysFont("Arial", 16)
     ### Physics stuff
     space = pymunk.Space()
-    space.gravity = 0.0, -1450.0
+    space.gravity = 0.0, -200.0
     draw_options = pymunk.pygame_util.DrawOptions(screen)
 
     ### Game area
@@ -140,7 +144,7 @@ def main():
                 pygame.image.save(screen, "breakout.png")
 
             elif event.type == KEYDOWN and event.key == K_SPACE:
-                  spawn_ball(space,  (300, 50), random.choice([(1, 10), (-1, 10)]))
+                  spawn_ball(space,  (150, 400), random.choice([(1, 10), (-1, 10)]))
 
         # if event.type == KEYDOWN and event.key == K_LEFT:
           #       # player_body.velocity = (-600, 0)
