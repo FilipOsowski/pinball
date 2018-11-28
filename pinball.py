@@ -28,7 +28,7 @@ collision_types = {
 def spawn_ball(space, position, direction):
     ball_body = pymunk.Body(1, pymunk.inf)
     ball_body.position = position
-    ball_shape = pymunk.Circle(ball_body, 5)
+    ball_shape = pymunk.Circle(ball_body, 10)
 
     ball_shape.color = THECOLORS["green"]
     ball_shape.elasticity = 1.0
@@ -38,7 +38,7 @@ def spawn_ball(space, position, direction):
 
     # Keep ball velocity at a static value
     def constant_velocity(body, gravity, damping, dt):
-        body.velocity += gravity * .005
+        body.velocity += gravity * 1
         print(gravity)
         print(body.velocity.normalized())
 
@@ -67,16 +67,16 @@ def main():
     font = pygame.font.SysFont("Arial", 16)
     ### Physics stuff
     space = pymunk.Space()
-    space.gravity = 0.0, -200.0
+    space.gravity = 0.0, -9
     draw_options = pymunk.pygame_util.DrawOptions(screen)
 
     ### Game area
     # walls - the left-top-right walls
-    static_lines = [pymunk.Segment(space.static_body, (50, 100), (50, 550), 2)
-        , pymunk.Segment(space.static_body, (50, 550), (550, 550), 2)
-        , pymunk.Segment(space.static_body, (550, 550), (550, 100), 2)
-        ,pymunk.Segment(space.static_body, (50, 100), (225, 50), 2)
-        , pymunk.Segment(space.static_body, (550, 100), (375, 50), 2)
+    static_lines = [pymunk.Segment(space.static_body, (50, 100), (50, 550), 4)
+        , pymunk.Segment(space.static_body, (50, 550), (550, 550), 4)
+        , pymunk.Segment(space.static_body, (550, 550), (550, 100), 4)
+        ,pymunk.Segment(space.static_body, (50, 100), (225, 50), 4)
+        , pymunk.Segment(space.static_body, (550, 100), (375, 50), 4)
                     ]
     for line in static_lines:
         line.color = THECOLORS['lightgray']
@@ -144,7 +144,7 @@ def main():
                 pygame.image.save(screen, "breakout.png")
 
             elif event.type == KEYDOWN and event.key == K_SPACE:
-                  spawn_ball(space,  (150, 400), random.choice([(1, 10), (-1, 10)]))
+                  spawn_ball(space, random.choice([(50, 550), (50, 550)]), random.choice([(1, 10), (-1, 10)]))
 
         # if event.type == KEYDOWN and event.key == K_LEFT:
           #       # player_body.velocity = (-600, 0)
