@@ -13,6 +13,7 @@ width, height = 600, 600
 collision_types = {
     "ball": 1,
     "bumper": 2,
+    "out_of_bounds": 3
 }
 
 
@@ -26,20 +27,21 @@ def add_bumper(space, location, radius):
 
     space.add(body, shape)
 
+
 def add_bumper_collision_handler(space):
     ch = space.add_collision_handler(collision_types["ball"], collision_types["bumper"])
 
     def normalized_vector_between(a, b):
         v = [b.position[0] - a.position[0], b.position[1] - a.position[1]]
-        r = (v[0]**2 + v[1]**2)**(1/2)
-        v = [v[0]/r, v[1]/r]
+        r = (v[0] ** 2 + v[1] ** 2) ** (1 / 2)
+        v = [v[0] / r, v[1] / r]
         return v
 
     def post_solve(arbiter, space, data):
         bumper_body = arbiter.shapes[1].body
         ball_body = arbiter.shapes[0].body
 
-        strength_of_bumper = 15
+        strength_of_bumper = 20
         impulse = normalized_vector_between(bumper_body, ball_body)
         impulse = [impulse[0] * strength_of_bumper, impulse[1] * strength_of_bumper]
 
@@ -60,11 +62,6 @@ def spawn_ball(space, position, direction):
     ball_body.apply_impulse_at_local_point(Vec2d(direction))
 
     # Keep ball velocity at a static value
-    def constant_velocity(body, gravity, damping, dt):
-        body.velocity += gravity * 1
-
-    ball_body.velocity_func = constant_velocity
-
     space.add(ball_body, ball_shape)
 
 
@@ -72,74 +69,67 @@ def setup_level(space):
     # Spawn a ball for the player to have something to play with
     spawn_ball(space, (random.randint(50, 550), 500), (random.randint(-100, 100), random.randint(-100, 100)))
 
-    add_bumper_collision_handler(space) # Add a collision handler for bumpers to work properly
-    add_bumper(space, (200, 300), 20) # Add a bumper with position and radius
+    # Adds bottom and upper boundaries
+    add_boundaries(space)
+
+    # Adds collision handler for the ball to be removed if it touches any of the red lines
+    add_out_of_bounds_collision_handler(space)
+
+    add_bumper_collision_handler(space)  # Add a collision handler for bumpers to work properly
+    add_bumper(space, (200, 300), 20)  # Add a bumper with position and radius
     add_bumper(space, (400, 300), 20)
 
-def main():
-    ### PyGame init
-    pygame.init()
-    screen = pygame.display.set_mode((width, height))
-    clock = pygame.time.Clock()
-    running = True
-    font = pygame.font.SysFont("Arial", 16)
-    ### Physics stuff
-    space = pymunk.Space()
-    space.gravity = 0.0, -9
-    draw_options = pymunk.pygame_util.DrawOptions(screen)
 
-    ### Game area
-    # walls - the left-top-right walls
-    static_lines = [pymunk.Segment(space.static_body, (50, 100), (50, 550), 4)
-        , pymunk.Segment(space.static_body, (50, 550), (550, 550), 4)
-        , pymunk.Segment(space.static_body, (550, 550), (550, 100), 4)
-        ,pymunk.Segment(space.static_body, (50, 100), (225, 50), 4)
-        , pymunk.Segment(space.static_body, (550, 100), (375, 50), 4)
-                    ]
-    for line in static_lines:
-        line.color = THECOLORS['lightgray']
-        line.elasticity = 0.95
-        line.friction = 0.3
-
-    """
-    bottom_line = pymunk.Segment(space.static_body, (225, 50), (375, 50), 4)
-    static_lines.append(bottom_line)
-    """
-
-    space.add(static_lines)
-
-    """
-    def remove_first(arbiter, space, data):
+def add_out_of_bounds_collision_handler(space):
+    def begin(arbiter, space, data):
         ball_shape = arbiter.shapes[0]
         space.remove(ball_shape, ball_shape.body)
         return True
 
     h = space.add_collision_handler(
         collision_types["ball"],
-        collision_types["bottom"])
-    h.begin = remove_first
+        collision_types["out_of_bounds"])
+    h.begin = begin
 
-    def pre_solve(arbiter, space, data):
-        print("THIS THING RAN")
-        set_ = arbiter.contact_point_set
-        if len(set_.points) > 0:
-            player_shape = arbiter.shapes[0]
-            width = (player_shape.b - player_shape.a).x
-            delta = (player_shape.body.position - set_.points[0].point_a.x).x
-            normal = Vec2d(0, 1).rotated(delta / width / 2)
-            set_.normal = normal
-            set_.points[0].distance = 0
-        arbiter.contact_point_set = set_
-        return True
+def add_boundaries(space):
+    static_lines = [pymunk.Segment(space.static_body, (50, 100), (50, 550), 4),
+                    pymunk.Segment(space.static_body, (50, 550), (550, 550), 4),
+                    pymunk.Segment(space.static_body, (550, 550), (550, 100), 4),
+                    pymunk.Segment(space.static_body, (50, 100), (225, 50), 4),
+                    pymunk.Segment(space.static_body, (550, 100), (375, 50), 4)]
 
-    h = space.add_collision_handler(
-        collision_types["player"],
-        collision_types["ball"])
-    h.pre_solve = pre_solve
-    """
+    for line in static_lines:
+        line.color = THECOLORS['lightgray']
+        line.elasticity = 0.95
+
+    out_of_bounds_area = [pymunk.Segment(space.static_body, (225, 0), (375, 0), 4),
+                          pymunk.Segment(space.static_body, (225, 0), (225, 45), 4),
+                          pymunk.Segment(space.static_body, (375, 0), (375, 45), 4)]
+
+    for line in out_of_bounds_area:
+        line.collision_type = collision_types["out_of_bounds"]
+        line.color = THECOLORS["red"]
+
+
+    static_lines.append(out_of_bounds_area)
+    space.add(static_lines)
+
+
+def main():
+    # PyGame init
+    pygame.init()
+    screen = pygame.display.set_mode((width, height))
+    clock = pygame.time.Clock()
+    running = True
+    font = pygame.font.SysFont("Arial", 16)
+
+    # Physics stuff
+    space = pymunk.Space()
+    space.gravity = (0, -500)
+    draw_options = pymunk.pygame_util.DrawOptions(screen)
 
     global state
-    # # Start game
+    # Start game
     setup_level(space)
 
     while running:
@@ -149,12 +139,13 @@ def main():
             elif event.type == KEYDOWN and (event.key in [K_ESCAPE, K_q]):
                 running = False
             elif event.type == KEYDOWN and event.key == K_SPACE:
-                spawn_ball(space, (random.randint(50, 550), 500), (random.randint(-100, 100), random.randint(-100, 100)))
+                spawn_ball(space, (random.randint(50, 550), 500),
+                           (random.randint(-100, 100), random.randint(-100, 100)))
 
-        ## Clear screen
+        # Clear screen
         screen.fill(THECOLORS["black"])
 
-        ### Draw stuff
+        # Draw stuff
         space.debug_draw(draw_options)
 
         state = []
@@ -162,12 +153,12 @@ def main():
             s = "%s %s %s" % (x, x.body.position, x.body.velocity)
             state.append(s)
 
-        ### Update physics
+        # Update physics
         fps = 60
         dt = 1. / fps
         space.step(dt)
 
-        ### Info and flip screen
+        # Info and flip screen
         screen.blit(font.render("fps: " + str(clock.get_fps()), 1, THECOLORS["white"]), (0, 0))
 
         pygame.display.flip()
