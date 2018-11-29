@@ -13,8 +13,13 @@ width, height = 600, 600
 collision_types = {
     "ball": 1,
     "bumper": 2,
-    "out_of_bounds": 3
+    "out_of_bounds": 3,
+    "powerup": 4,
+    "trans1":5,
+    "trans2":6
 }
+
+
 
 
 def add_bumper(space, location, radius):
@@ -26,8 +31,6 @@ def add_bumper(space, location, radius):
     shape.collision_type = collision_types["bumper"]
 
     space.add(body, shape)
-
-
 def add_bumper_collision_handler(space):
     ch = space.add_collision_handler(collision_types["ball"], collision_types["bumper"])
 
@@ -49,6 +52,63 @@ def add_bumper_collision_handler(space):
 
     ch.post_solve = post_solve
 
+def add_powerup(space,color,position): #adds circular power ups that affect ball differently upon impact
+    pow=pymunk.Circle(space.static_body,15)
+    pow.body.position= position
+    pow.collision_type = collision_types["powerup"]
+    pow.color = color
+    space.add(pow)
+def add_powerup_collision_handler(space):#collision between ball and powerup
+    def remove_pow(arbiter, space, data):
+        circ= arbiter.shapes[0]
+        ball = arbiter.shapes[1]
+        if (circ.color == THECOLORS["blue"]):#makes ball go faster
+            print("fast")
+            ball.body.velocity*=3
+        elif (circ.color == THECOLORS["red"]):#adds new ball in screen and makes ball go faster
+            print("both")
+           # ball.body.velocity/=5
+            spawn_ball(space, (random.randint(50, 550), 500), (random.randint(-100, 100), random.randint(-100, 100)))
+            ball.body.velocity*=3
+        else:#adds new ball in screen
+            print("new")
+            spawn_ball(space, (random.randint(50, 550), 500), (random.randint(-100, 100), random.randint(-100, 100)))
+        print(ball.body.velocity)
+        space.remove(circ)
+    h = space.add_collision_handler(collision_types["powerup"],collision_types["ball"])
+    h.separate = remove_pow
+
+def add_transport(space,posStart,posEnd,posStart2,posEnd2): #adds segments that transport ball across the layout
+    trans = pymunk.Segment(space.static_body, posStart, posEnd, 5)     #segment on left
+    trans.body.position.x = posStart[0]
+    trans.collision_type = collision_types["trans1"]
+    trans.color = THECOLORS["green"]
+
+    trans2 = pymunk.Segment(space.static_body, posStart2, posEnd2, 5)     #segment on right
+    trans2.body.position.x = posStart2[0]
+    trans2.collision_type = collision_types["trans2"]
+    trans2.color = THECOLORS["green"]
+    space.add(trans,trans2)
+
+    def move_ball_left(arbiter, space, data):    #changes ball's position to the left, after collision with the right segment
+        print("left")
+        ball = arbiter.shapes[0]
+        ball.body.position = (trans.body.position.x + 5, ball.body.position.y)
+        ball.body.velocity.x *= -1  # makes ball move in opposite x direction to reflect the "transporting" idea
+    def move_ball_right(arbiter, space, data):  #changes ball's position to the right, after collision with the left segment
+        print("right")
+        ball = arbiter.shapes[0]
+        ball.body.position = (trans.body.position.x + (posStart2[0]-abs(posStart[0]))-5, ball.body.position.y)
+        ball.body.velocity.x *= -1  # makes ball move in opposite x direction to reflect the "transporting" idea
+    h = space.add_collision_handler(
+        collision_types["ball"],
+        collision_types["trans1"])
+    h.separate = move_ball_right
+    h2 = space.add_collision_handler(
+        collision_types["ball"],
+        collision_types["trans2"])
+    h2.separate = move_ball_left
+    return trans,trans2
 
 def spawn_ball(space, position, direction):
     ball_body = pymunk.Body(1, pymunk.inf)
@@ -79,7 +139,12 @@ def setup_level(space):
     add_bumper(space, (200, 300), 20)  # Add a bumper with position and radius
     add_bumper(space, (400, 300), 20)
 
+    add_powerup_collision_handler(space)   #adds power up obstacles that change ball
+    add_powerup(space,THECOLORS["red"],(300,400))
+    add_powerup(space, THECOLORS["blue"], (475, 350))
+    add_powerup(space, THECOLORS["yellow"], (100, 150))
 
+    add_transport(space,(-50,50),(-50,100),(450,50),(450,100))      #adds transport segments that move ball
 def add_out_of_bounds_collision_handler(space):
     def begin(arbiter, space, data):
         ball_shape = arbiter.shapes[0]
