@@ -93,18 +93,18 @@ def add_transport(space,posStart,posEnd,posStart2,posEnd2): #adds segments that 
     def move_ball_left(arbiter, space, data):    #changes ball's position to the left, after collision with the right segment
         print("left")
         ball = arbiter.shapes[0]
-        ball.body.position = (trans.body.position.x + 5, ball.body.position.y)
-        ball.body.velocity.x *= -1  # makes ball move in opposite x direction to reflect the "transporting" idea
+        space.remove(ball.body, ball)#removes ball from space
+        spawn_ball(space, (trans.body.position.x + 5, ball.body.position.y),ball.body.velocity * -1)#spawns ball in again with new velocity and in the left position
     def move_ball_right(arbiter, space, data):  #changes ball's position to the right, after collision with the left segment
         print("right")
         ball = arbiter.shapes[0]
-        ball.body.position = (trans.body.position.x + (posStart2[0]-abs(posStart[0]))-5, ball.body.position.y)
-        ball.body.velocity.x *= -1  # makes ball move in opposite x direction to reflect the "transporting" idea
-    h = space.add_collision_handler(
+        space.remove(ball.body,ball)
+        spawn_ball(space,(trans.body.position.x + (posStart2[0] - abs(posStart[0])) - 5, ball.body.position.y),ball.body.velocity*-1)#spawns ball in again with new velocity and in the right position
+    h = space.add_collision_handler(#adds collision betweel ball and left transport
         collision_types["ball"],
         collision_types["trans1"])
     h.separate = move_ball_right
-    h2 = space.add_collision_handler(
+    h2 = space.add_collision_handler(#adds collision betweel ball and right transport
         collision_types["ball"],
         collision_types["trans2"])
     h2.separate = move_ball_left
