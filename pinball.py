@@ -28,6 +28,7 @@ def add_bumper(space, location, radius):
     body.position = location
 
     shape = pymunk.Circle(body, radius)
+    shape.color = THECOLORS["blue"]
     shape.collision_type = collision_types["bumper"]
 
     space.add(body, shape)
@@ -73,7 +74,6 @@ def add_powerup_collision_handler(space):#collision between ball and powerup
         else:#adds new ball in screen
             print("new")
             spawn_ball(space, (random.randint(50, 550), 500), (random.randint(-100, 100), random.randint(-100, 100)))
-        print(ball.body.velocity)
         space.remove(circ)
     h = space.add_collision_handler(collision_types["powerup"],collision_types["ball"])
     h.separate = remove_pow
@@ -145,6 +145,8 @@ def setup_level(space):
     add_powerup(space, THECOLORS["yellow"], (100, 150))
 
     add_transport(space,(-50,50),(-50,100),(450,50),(450,100))      #adds transport segments that move ball
+
+
 def add_out_of_bounds_collision_handler(space):
     def begin(arbiter, space, data):
         ball_shape = arbiter.shapes[0]
@@ -179,6 +181,8 @@ def add_boundaries(space):
     static_lines.append(out_of_bounds_area)
     space.add(static_lines)
 
+def flipyv(v):
+        return int(v.x), int(-v.y+600)
 
 def main():
     # PyGame init
@@ -201,6 +205,24 @@ def main():
         for event in pygame.event.get():
             if event.type == QUIT:
                 running = False
+            elif event.type == pygame.MOUSEBUTTONUP:
+
+                def normalize_vector(a, b):
+                    v = [b[0] - a[0], b[1] - a[1]]
+                    r = (v[0] ** 2 + v[1] ** 2) ** (1 / 2)
+                    v = [v[0] / r, v[1] / r]
+                    return v
+
+                pos = flipyv(Vec2d(event.pos))
+
+                direction = normalize_vector((300, 200), pos)
+                strength = 5
+                print("DIRECTION IS")
+                print(direction)
+                direction = map(lambda x: x * strength, direction)
+                spawn_ball(space, (300, 200), direction)
+
+
             elif event.type == KEYDOWN and (event.key in [K_ESCAPE, K_q]):
                 running = False
             elif event.type == KEYDOWN and event.key == K_SPACE:
