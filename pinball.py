@@ -8,7 +8,7 @@ import pymunk
 from pymunk import Vec2d
 import pymunk.pygame_util
 
-width, height = 600, 600
+width, height = 700, 600
 
 collision_types = {
     "ball": 1,
@@ -20,7 +20,8 @@ collision_types = {
 }
 
 
-
+def flipyv(v):
+    return int(v.x), int(-v.y + 600)
 
 def add_bumper(space, location, radius):
     body = pymunk.Body(body_type=pymunk.Body.STATIC)
@@ -28,7 +29,6 @@ def add_bumper(space, location, radius):
     body.position = location
 
     shape = pymunk.Circle(body, radius)
-    shape.color = THECOLORS["blue"]
     shape.collision_type = collision_types["bumper"]
 
     space.add(body, shape)
@@ -45,7 +45,7 @@ def add_bumper_collision_handler(space):
         bumper_body = arbiter.shapes[1].body
         ball_body = arbiter.shapes[0].body
 
-        strength_of_bumper = 20
+        strength_of_bumper = 50
         impulse = normalized_vector_between(bumper_body, ball_body)
         impulse = [impulse[0] * strength_of_bumper, impulse[1] * strength_of_bumper]
 
@@ -74,6 +74,7 @@ def add_powerup_collision_handler(space):#collision between ball and powerup
         else:#adds new ball in screen
             print("new")
             spawn_ball(space, (random.randint(50, 550), 500), (random.randint(-100, 100), random.randint(-100, 100)))
+        print(ball.body.velocity)
         space.remove(circ)
     h = space.add_collision_handler(collision_types["powerup"],collision_types["ball"])
     h.separate = remove_pow
@@ -145,8 +146,6 @@ def setup_level(space):
     add_powerup(space, THECOLORS["yellow"], (100, 150))
 
     add_transport(space,(-50,50),(-50,100),(450,50),(450,100))      #adds transport segments that move ball
-
-
 def add_out_of_bounds_collision_handler(space):
     def begin(arbiter, space, data):
         ball_shape = arbiter.shapes[0]
@@ -158,12 +157,39 @@ def add_out_of_bounds_collision_handler(space):
         collision_types["out_of_bounds"])
     h.begin = begin
 
+spring_segment_body = None
+def add_spring(space):
+
+    spring_anchor_body = pymunk.Body(body_type = pymunk.Body.STATIC)
+    spring_anchor_body.position = (590, 50)
+    spring_ground = pymunk.Segment(spring_anchor_body, (-40, 0), (40, 0), 3)
+    body = pymunk.Body(10, 100000000)
+    body.position = (580, 100)
+    l1 = pymunk.Segment(body, (-17, 0), (17, 0), 5)
+
+
+    rest_length = 300
+    rest_length = 300
+    stiffness = 1000
+    damping = 100
+    r = pymunk.DampedSpring(body, spring_anchor_body, (0, 0), (0, 0), rest_length, stiffness, damping)
+
+    space.add(l1, body, spring_anchor_body, spring_ground, r)
+    return r
+
+
 def add_boundaries(space):
     static_lines = [pymunk.Segment(space.static_body, (50, 100), (50, 550), 4),
-                    pymunk.Segment(space.static_body, (50, 550), (550, 550), 4),
-                    pymunk.Segment(space.static_body, (550, 550), (550, 100), 4),
+                    pymunk.Segment(space.static_body, (50, 550), (630, 550), 4),
+                    pymunk.Segment(space.static_body, (565, 450), (565, 50), 4),
                     pymunk.Segment(space.static_body, (50, 100), (225, 50), 4),
-                    pymunk.Segment(space.static_body, (550, 100), (375, 50), 4)]
+                    pymunk.Segment(space.static_body, (550, 100), (375, 50), 4),
+                    pymunk.Segment(space.static_body, (550, 450), (550, 50), 4),
+                    pymunk.Segment(space.static_body, (550, 450), (565, 450), 4),
+                    pymunk.Segment(space.static_body, (615, 550), (615, 50), 4),
+                    pymunk.Segment(space.static_body, (630, 550), (630, 50), 4),
+                    pymunk.Segment(space.static_body, (550, 550), (615, 500), 4),
+                    ]
 
     for line in static_lines:
         line.color = THECOLORS['lightgray']
@@ -181,8 +207,8 @@ def add_boundaries(space):
     static_lines.append(out_of_bounds_area)
     space.add(static_lines)
 
-def flipyv(v):
-        return int(v.x), int(-v.y+600)
+
+spring_anchor = None
 
 def main():
     # PyGame init
@@ -196,7 +222,7 @@ def main():
     space = pymunk.Space()
     space.gravity = (0, -500)
     draw_options = pymunk.pygame_util.DrawOptions(screen)
-
+    spring = add_spring(space)
     global state
     # Start game
     setup_level(space)
@@ -205,8 +231,13 @@ def main():
         for event in pygame.event.get():
             if event.type == QUIT:
                 running = False
+            elif event.type == KEYDOWN and (event.key in [K_ESCAPE, K_q]):
+                running = False
+            elif event.type == KEYDOWN and event.key == K_SPACE:
+                spring.rest_length = 50
+            elif event.type == KEYUP and event.key == K_SPACE:
+                spring.rest_length = 300
             elif event.type == pygame.MOUSEBUTTONUP:
-
                 def normalize_vector(a, b):
                     v = [b[0] - a[0], b[1] - a[1]]
                     r = (v[0] ** 2 + v[1] ** 2) ** (1 / 2)
@@ -221,13 +252,6 @@ def main():
                 print(direction)
                 direction = map(lambda x: x * strength, direction)
                 spawn_ball(space, (300, 200), direction)
-
-
-            elif event.type == KEYDOWN and (event.key in [K_ESCAPE, K_q]):
-                running = False
-            elif event.type == KEYDOWN and event.key == K_SPACE:
-                spawn_ball(space, (random.randint(50, 550), 500),
-                           (random.randint(-100, 100), random.randint(-100, 100)))
 
         # Clear screen
         screen.fill(THECOLORS["black"])
@@ -253,4 +277,5 @@ def main():
 
 
 if __name__ == '__main__':
+    yval = 100
     sys.exit(main())
