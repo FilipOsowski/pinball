@@ -120,7 +120,7 @@ def gen_rail(space,pInit,pFin):#generates series of short line segments to give 
     distY=(pFin[1]-pInit[1])
     pX= pInit[0]
     pY= pInit[1]
-    tot = 20
+    tot = 23
     for num in range(tot):
         rail.append(pymunk.Segment(space.static_body, (pX,pY),(pX+(distX/tot),pY+(distY/tot)+((tot/2)-num)*3),6))
         pX+=distX/tot
@@ -184,15 +184,15 @@ def add_spring(space):
     spring_anchor_body = pymunk.Body(body_type = pymunk.Body.STATIC)
     spring_anchor_body.position = (590, 50)
     spring_ground = pymunk.Segment(spring_anchor_body, (-40, 0), (40, 0), 3)
-    body = pymunk.Body(10, 100000000)
+    body = pymunk.Body(10, 1000000000000000000000000000000000000)
     body.position = (580, 100)
-    l1 = pymunk.Segment(body, (-17, 0), (17, 0), 5)
+    l1 = pymunk.Segment(body, (-18.6, 0), (18.6, 0), 20)
 
 #615,350
     rest_length = 300
-    rest_length = 300
-    stiffness = 1000
-    damping = 100
+    rest_length = 100
+    stiffness = 3000
+    damping = 150
     r = pymunk.DampedSpring(body, spring_anchor_body, (0, 0), (0, 0), rest_length, stiffness, damping)
 
     space.add(l1, body, spring_anchor_body, spring_ground, r)
@@ -202,13 +202,13 @@ def add_spring(space):
 def add_boundaries(space):
     static_lines = [pymunk.Segment(space.static_body, (50, 100), (50, 700), 4),
                     #pymunk.Segment(space.static_body, (50, 850), (630, 850), 4),
-                    pymunk.Segment(space.static_body, (565, 450), (565, 50), 4),
+                    pymunk.Segment(space.static_body, (565, 650), (565, 50), 4),
                     pymunk.Segment(space.static_body, (50, 100), (225, 50), 4),
                     pymunk.Segment(space.static_body, (550, 100), (375, 50), 4),
-                    pymunk.Segment(space.static_body, (550, 450), (550, 50), 4),
+                    pymunk.Segment(space.static_body, (550, 650), (550, 50), 4),
                     pymunk.Segment(space.static_body, (550, 450), (565, 450), 4),
-                    pymunk.Segment(space.static_body, (615, 700), (615, 50), 4),
-                    pymunk.Segment(space.static_body, (630, 700), (630, 50), 4),
+                    pymunk.Segment(space.static_body, (615, 678), (615, 50), 4),
+                    pymunk.Segment(space.static_body, (630, 678), (630, 50), 4),
                     #pymunk.Segment(space.static_body, (550, 850), (615, 700), 4),
                     ]
     gen_rail(space, (50, 700), (633, 678))
@@ -255,9 +255,9 @@ def main():
             elif event.type == KEYDOWN and (event.key in [K_ESCAPE, K_q]):
                 running = False
             elif event.type == KEYDOWN and event.key == K_SPACE:
-                spring.rest_length = 50
+                spring.rest_length = 10
             elif event.type == KEYUP and event.key == K_SPACE:
-                spring.rest_length = 300
+                spring.rest_length = 150
             elif event.type == pygame.MOUSEBUTTONUP:
                 def normalize_vector(a, b):
                     v = [b[0] - a[0], b[1] - a[1]]
