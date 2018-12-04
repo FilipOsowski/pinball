@@ -45,7 +45,7 @@ def add_bumper_collision_handler(space):
         bumper_body = arbiter.shapes[1].body
         ball_body = arbiter.shapes[0].body
 
-        strength_of_bumper = 50
+        strength_of_bumper = 20
         impulse = normalized_vector_between(bumper_body, ball_body)
         impulse = [impulse[0] * strength_of_bumper, impulse[1] * strength_of_bumper]
 
