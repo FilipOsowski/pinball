@@ -8,7 +8,7 @@ import pymunk
 from pymunk import Vec2d
 import pymunk.pygame_util
 
-width, height = 700, 600
+width, height = 700, 900
 
 collision_types = {
     "ball": 1,
@@ -65,12 +65,16 @@ def add_powerup_collision_handler(space):#collision between ball and powerup
         ball = arbiter.shapes[1]
         if (circ.color == THECOLORS["blue"]):#makes ball go faster
             print("fast")
-            ball.body.velocity*=3
+            space.remove(ball.body,ball)
+            spawn_ball(space,ball.body.position,ball.body.velocity*2)
+            #ball.body.velocity*=2
         elif (circ.color == THECOLORS["red"]):#adds new ball in screen and makes ball go faster
             print("both")
            # ball.body.velocity/=5
             spawn_ball(space, (random.randint(50, 550), 500), (random.randint(-100, 100), random.randint(-100, 100)))
-            ball.body.velocity*=3
+            space.remove(ball.body, ball)
+            spawn_ball(space, ball.body.position, ball.body.velocity * 2)
+            #ball.body.velocity*=3
         else:#adds new ball in screen
             print("new")
             spawn_ball(space, (random.randint(50, 550), 500), (random.randint(-100, 100), random.randint(-100, 100)))
@@ -110,6 +114,23 @@ def add_transport(space,posStart,posEnd,posStart2,posEnd2): #adds segments that 
         collision_types["trans2"])
     h2.separate = move_ball_left
     return trans,trans2
+def gen_rail(space,pInit,pFin):#generates series of short line segments to give impression of a curve
+    rail = []
+    distX = (pFin[0]-pInit[0])
+    distY=(pFin[1]-pInit[1])
+    pX= pInit[0]
+    pY= pInit[1]
+    tot = 20
+    for num in range(tot):
+        rail.append(pymunk.Segment(space.static_body, (pX,pY),(pX+(distX/tot),pY+(distY/tot)+((tot/2)-num)*3),6))
+        pX+=distX/tot
+        pY+=distY/tot
+        pY+=((tot/2)-num)*3
+    for line in rail:
+        line.color = THECOLORS['lightgray']
+        line.elasticity = 0.21
+        space.add(line)
+    return rail
 
 def spawn_ball(space, position, direction):
     ball_body = pymunk.Body(1, pymunk.inf)
@@ -167,7 +188,7 @@ def add_spring(space):
     body.position = (580, 100)
     l1 = pymunk.Segment(body, (-17, 0), (17, 0), 5)
 
-
+#615,350
     rest_length = 300
     rest_length = 300
     stiffness = 1000
@@ -179,18 +200,18 @@ def add_spring(space):
 
 
 def add_boundaries(space):
-    static_lines = [pymunk.Segment(space.static_body, (50, 100), (50, 550), 4),
-                    pymunk.Segment(space.static_body, (50, 550), (630, 550), 4),
+    static_lines = [pymunk.Segment(space.static_body, (50, 100), (50, 700), 4),
+                    #pymunk.Segment(space.static_body, (50, 850), (630, 850), 4),
                     pymunk.Segment(space.static_body, (565, 450), (565, 50), 4),
                     pymunk.Segment(space.static_body, (50, 100), (225, 50), 4),
                     pymunk.Segment(space.static_body, (550, 100), (375, 50), 4),
                     pymunk.Segment(space.static_body, (550, 450), (550, 50), 4),
                     pymunk.Segment(space.static_body, (550, 450), (565, 450), 4),
-                    pymunk.Segment(space.static_body, (615, 550), (615, 50), 4),
-                    pymunk.Segment(space.static_body, (630, 550), (630, 50), 4),
-                    pymunk.Segment(space.static_body, (550, 550), (615, 500), 4),
+                    pymunk.Segment(space.static_body, (615, 700), (615, 50), 4),
+                    pymunk.Segment(space.static_body, (630, 700), (630, 50), 4),
+                    #pymunk.Segment(space.static_body, (550, 850), (615, 700), 4),
                     ]
-
+    gen_rail(space, (50, 700), (633, 678))
     for line in static_lines:
         line.color = THECOLORS['lightgray']
         line.elasticity = 0.95
@@ -246,12 +267,12 @@ def main():
 
                 pos = flipyv(Vec2d(event.pos))
 
-                direction = normalize_vector((300, 200), pos)
+                direction = normalize_vector((615, 400), pos)
                 strength = 5
                 print("DIRECTION IS")
                 print(direction)
                 direction = map(lambda x: x * strength, direction)
-                spawn_ball(space, (300, 200), direction)
+                spawn_ball(space, (615, 400), direction)
 
         # Clear screen
         screen.fill(THECOLORS["black"])
