@@ -1,4 +1,11 @@
+__version__ = "$Id:$"
+__docformat__ = "reStructuredText"
+
+import math
+import pymunk.pygame_util
 import sys, random
+
+import pymunk.pygame_util
 
 import pygame
 from pygame.locals import *
@@ -15,7 +22,6 @@ collision_types = {
     "bumper": 2,
     "out_of_bounds": 3
 }
-
 
 def add_bumper(space, location, radius):
     body = pymunk.Body(body_type=pymunk.Body.STATIC)
@@ -142,11 +148,13 @@ def main():
                 spawn_ball(space, (random.randint(50, 550), 500),
                            (random.randint(-100, 100), random.randint(-100, 100)))
 
+
         # Clear screen
         screen.fill(THECOLORS["black"])
 
         # Draw stuff
         space.debug_draw(draw_options)
+        # Flippers
 
         state = []
         for x in space.shapes:
