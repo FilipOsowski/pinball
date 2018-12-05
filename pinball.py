@@ -257,22 +257,23 @@ def main():
             elif event.type == KEYDOWN and event.key == K_SPACE:
                 spring.rest_length = 10
             elif event.type == KEYUP and event.key == K_SPACE:
-                spring.rest_length = 150
-            elif event.type == pygame.MOUSEBUTTONUP:
                 def normalize_vector(a, b):
                     v = [b[0] - a[0], b[1] - a[1]]
                     r = (v[0] ** 2 + v[1] ** 2) ** (1 / 2)
                     v = [v[0] / r, v[1] / r]
                     return v
 
-                pos = flipyv(Vec2d(event.pos))
+                # pos = flipyv(Vec2d(event.pos))
 
-                direction = normalize_vector((615, 400), pos)
+                direction = normalize_vector((580, 110), (580,110))
                 strength = 5
                 print("DIRECTION IS")
                 print(direction)
                 direction = map(lambda x: x * strength, direction)
-                spawn_ball(space, (615, 400), direction)
+                spawn_ball(space, (590, 110), direction)
+                spring.rest_length = 150
+            # elif event.type == pygame.MOUSEBUTTONUP:
+
 
         # Clear screen
         screen.fill(THECOLORS["black"])
