@@ -1,5 +1,5 @@
 import sys, random
-import math
+
 import pygame
 from pygame.locals import *
 from pygame.color import *
@@ -9,6 +9,7 @@ from pymunk import Vec2d
 import pymunk.pygame_util
 
 width, height = 700, 900
+score = 0
 
 collision_types = {
     "ball": 1,
@@ -48,8 +49,11 @@ def add_bumper_collision_handler(space):
         strength_of_bumper = 20
         impulse = normalized_vector_between(bumper_body, ball_body)
         impulse = [impulse[0] * strength_of_bumper, impulse[1] * strength_of_bumper]
-
+        global score
+        score += 1000
         ball_body.apply_impulse_at_world_point(impulse, (ball_body.position[0], ball_body.position[1]))
+        print("this is your score")
+        print(score)
 
     ch.post_solve = post_solve
 
@@ -237,8 +241,18 @@ def main():
     screen = pygame.display.set_mode((width, height))
     clock = pygame.time.Clock()
     running = True
-    font = pygame.font.SysFont("Arial", 16)
 
+    # Display some text
+    font = pygame.font.SysFont("Arial", 30)
+    text = """LMB: Create ball
+    LMB + Shift: Create many balls
+    RMB: Drag to create wall, release to finish
+    Space: Pause physics simulation"""
+    y = 5
+    for line in text.splitlines():
+        text = font.render(line, 1, THECOLORS["white"])
+        screen.blit(text, (60, y))
+        y += 10
     # Physics stuff
     space = pymunk.Space()
     space.gravity = (0, -500)
@@ -248,36 +262,10 @@ def main():
     # Start game
     setup_level(space)
 
-    pointer_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
-    # pointer_body.angle= 7*math.pi/4
-    pointer_body2 = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
-
-    ps = [(10, 0), (0, 0), (0, 60), (10, 60)]
-    ps2 = [(10, 0), (0, 0), (0, -60), (10, -60)]
-
-    moment = pymunk.moment_for_poly(1, ps)
-    gun_body = pymunk.Body(1, moment)
-    gun_body.position = 250, 300
-    gun_shape = pymunk.Poly(gun_body, ps)
-    gun_body.angle = 7 * math.pi / 4
-    moment2 = pymunk.moment_for_poly(1, ps2)
-    gun_body2 = pymunk.Body(1, moment2)
-    gun_body2.position = 375, 300
-    gun_shape2 = pymunk.Poly(gun_body2, ps2)
-
-    rest_angle = 3 * math.pi / 4
-    rest_angle2 = - 7 * math.pi / 4
-    stiffness = 200000
-    damping = 21000
-
-    rotary_spring = pymunk.constraint.DampedRotarySpring(pointer_body, gun_body, rest_angle, stiffness, damping)
-    rotary_spring2 = pymunk.constraint.DampedRotarySpring(pointer_body2, gun_body2, rest_angle2, stiffness, damping)
-
-    space.add(gun_body, gun_shape, rotary_spring)
-    space.add(gun_body2, gun_shape2, rotary_spring2)
-
-
     while running:
+        global score
+        score += 1
+        print score
         for event in pygame.event.get():
             if event.type == QUIT:
                 running = False
@@ -285,14 +273,6 @@ def main():
                 running = False
             elif event.type == KEYDOWN and event.key == K_SPACE:
                 spring.rest_length = 10
-            if event.type == KEYDOWN and event.key == K_a:
-                rotary_spring.rest_angle = math.pi / 4
-            if event.type == KEYUP and event.key == K_a:
-                rotary_spring.rest_angle = 3 * math.pi / 4
-            if event.type == KEYDOWN and event.key == K_d:
-                rotary_spring2.rest_angle = -5 * math.pi / 4
-            if event.type == KEYUP and event.key == K_d:
-                rotary_spring2.rest_angle = - 7 * math.pi / 4
 
                 def normalize_vector(a, b):
                     v = [b[0] - a[0], b[1] - a[1]]
@@ -332,8 +312,8 @@ def main():
         space.step(dt)
 
         # Info and flip screen
-        screen.blit(font.render("fps: " + str(clock.get_fps()), 1, THECOLORS["white"]), (0, 0))
-
+        # screen.blit(font.render("fps: " + str(clock.get_fps()), 1, THECOLORS["white"]), (0, 0))
+        screen.blit(font.render("Score: " + str(score), 1, THECOLORS["white"]), (0, 0))
         pygame.display.flip()
         clock.tick(fps)
 
