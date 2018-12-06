@@ -231,8 +231,6 @@ def add_boundaries(space):
 
     static_lines.append(out_of_bounds_area)
     space.add(static_lines)
-
-
 spring_anchor = None
 
 def main():
