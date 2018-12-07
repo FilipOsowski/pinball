@@ -11,6 +11,8 @@ from pymunk import Vec2d
 
 width, height = 700, 900
 score = 0
+lives = []
+numLives = 2
 
 collision_types = {
     "ball": 1,
@@ -190,6 +192,21 @@ def setup_level(space):
     # Adds bottom and upper boundaries
     add_boundaries(space)
 
+    pow1 = pymunk.Circle(space.static_body, 15)
+    pow1.body.position = (25, 825)
+    pow1.color = THECOLORS["red"]
+    space.add(pow1)
+    pow2 = pymunk.Circle(space.static_body, 15)
+    pow2.body.position = (65, 825)
+    pow2.color = THECOLORS["red"]
+    space.add(pow2)
+    pow3 = pymunk.Circle(space.static_body, 15)
+    pow3.body.position = (105, 825)
+    pow3.color = THECOLORS["red"]
+    space.add(pow3)
+    global lives
+    lives = [pow1, pow2, pow3]
+
     # Adds collision handler for the ball to be removed if it touches any of the red lines
     add_out_of_bounds_collision_handler(space)
 
@@ -201,6 +218,9 @@ def setup_level(space):
     add_powerup(space,THECOLORS["red"],(300,400))
     add_powerup(space, THECOLORS["blue"], (475, 350))
     add_powerup(space, THECOLORS["yellow"], (100, 150))
+    #lives
+
+
 
     add_transport(space, (-50, 50), (-50, 100), (450, 50), (450, 100))  # adds transport segments that move ball
 
@@ -209,12 +229,19 @@ def add_out_of_bounds_collision_handler(space):
     def begin(arbiter, space, data):
         ball_shape = arbiter.shapes[0]
         space.remove(ball_shape, ball_shape.body)
+        if numLives > -1:
+            global numLives
+            space.remove(lives[numLives])
+            numLives -= 1
+
         return True
+
 
     h = space.add_collision_handler(
         collision_types["ball"],
         collision_types["out_of_bounds"])
     h.begin = begin
+
 
 
 def add_spring(space):
