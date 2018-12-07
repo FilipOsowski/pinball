@@ -268,7 +268,7 @@ spring_anchor = None
 def main():
     # PyGame init
     pygame.init()
-    screen = pygame.display.set_mode((width, height))
+    screen = pygame.display.set_mode((width, height), RESIZABLE)
     clock = pygame.time.Clock()
     running = True
 
