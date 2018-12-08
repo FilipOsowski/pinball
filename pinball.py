@@ -9,7 +9,7 @@ from pygame.locals import *
 from pygame.color import *
 from pymunk import Vec2d
 
-width, height = 700, 900
+width, height = 1000, 1000
 score = 0
 lives = []
 numLives = 2
@@ -91,12 +91,12 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
 
 
 def add_transport(space, posStart, posEnd, posStart2, posEnd2):  # adds segments that transport ball across the layout
-    trans = pymunk.Segment(space.static_body, posStart, posEnd, 5)  # segment on left
+    trans = pymunk.Segment(space.static_body, posStart, posEnd, 7)  # segment on left
     trans.body.position.x = posStart[0]
     trans.collision_type = collision_types["trans1"]
     trans.color = THECOLORS["green"]
 
-    trans2 = pymunk.Segment(space.static_body, posStart2, posEnd2, 5)  # segment on right
+    trans2 = pymunk.Segment(space.static_body, posStart2, posEnd2, 7)  # segment on right
     trans2.body.position.x = posStart2[0]
     trans2.collision_type = collision_types["trans2"]
     trans2.color = THECOLORS["green"]
@@ -147,7 +147,7 @@ def gen_rail(space, pInit, pFin):  # generates series of short line segments to 
 def spawn_ball(space, position, direction):
     ball_body = pymunk.Body(1, pymunk.inf)
     ball_body.position = position
-    ball_shape = pymunk.Circle(ball_body, 10)
+    ball_shape = pymunk.Circle(ball_body, 13)
 
     ball_shape.color = THECOLORS["green"]
     ball_shape.elasticity = 0.95
@@ -159,29 +159,36 @@ def spawn_ball(space, position, direction):
     space.add(ball_body, ball_shape)
 
 def add_paddles(space):
-    pointer_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
-    # pointer_body.angle= 7*math.pi/4
-    pointer_body2 = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
-    ps = [(10, 0), (0, 0), (0, 60), (10, 60)]
-    ps2 = [(10, 0), (0, 0), (0, -60), (10, -60)]
+    pointer_body = pymunk.Body(body_type=pymunk.Body.STATIC)
+    pointer_body.position = 204, 60
+    pointer_body2 = pymunk.Body(body_type=pymunk.Body.STATIC)
+    pointer_body2.position = 396, 60
+
+    ps = [(20, 0), (0, 0), (0, 80), (20, 80)]
+    ps2 = [(20, 0), (0, 0), (0, -80), (20, -80)]
+
     moment = pymunk.moment_for_poly(1, ps)
-    gun_body = pymunk.Body(1, moment)
-    gun_body.position = 250, 300
+    gun_body = pymunk.Body(9999, moment)
+    gun_body.angle = -3*math.pi/4
+    gun_body.position = pointer_body.position
     gun_shape = pymunk.Poly(gun_body, ps)
-    gun_body.angle = 7 * math.pi / 4
     moment2 = pymunk.moment_for_poly(1, ps2)
-    gun_body2 = pymunk.Body(1, moment2)
-    gun_body2.position = 375, 300
+    gun_body2 = pymunk.Body(9999, moment2)
+    gun_body2.angle = 3*math.pi/4
+    gun_body2.position = pointer_body2.position
     gun_shape2 = pymunk.Poly(gun_body2, ps2)
-    rest_angle = 3 * math.pi / 4
-    rest_angle2 = - 7 * math.pi / 4
-    stiffness = 200000
-    damping = 21000
+
+    rest_angle = 3 * math.pi / 5
+    rest_angle2 =- 8 * math.pi / 5
+    stiffness = 20000000
+    damping = 21000 * 11
+    pinjoint = pymunk.constraint.PinJoint(pointer_body,gun_body)
+    pinjoint2 = pymunk.constraint.PinJoint(pointer_body2, gun_body2)
     rotary_spring = pymunk.constraint.DampedRotarySpring(pointer_body, gun_body, rest_angle, stiffness, damping)
     rotary_spring2 = pymunk.constraint.DampedRotarySpring(pointer_body2, gun_body2, rest_angle2, stiffness, damping)
-    space.add(gun_body, gun_shape, rotary_spring)
-    space.add(gun_body2, gun_shape2, rotary_spring2)
 
+    space.add(gun_body, gun_shape, rotary_spring, pinjoint)
+    space.add(gun_body2, gun_shape2, rotary_spring2, pinjoint2)
     return rotary_spring, rotary_spring2
 
 
@@ -218,9 +225,6 @@ def setup_level(space):
     add_powerup(space,THECOLORS["red"],(300,400))
     add_powerup(space, THECOLORS["blue"], (475, 350))
     add_powerup(space, THECOLORS["yellow"], (100, 150))
-    #lives
-
-
 
     add_transport(space, (-50, 50), (-50, 100), (450, 50), (450, 100))  # adds transport segments that move ball
 
@@ -263,27 +267,28 @@ def add_spring(space):
 
 
 def add_boundaries(space):
-    static_lines = [pymunk.Segment(space.static_body, (50, 100), (50, 700), 4),
-                    pymunk.Segment(space.static_body, (565, 650), (565, 50), 4),
-                    pymunk.Segment(space.static_body, (50, 100), (225, 50), 4),
-                    pymunk.Segment(space.static_body, (550, 100), (375, 50), 4),
-                    pymunk.Segment(space.static_body, (550, 650), (550, 50), 4),
-                    pymunk.Segment(space.static_body, (550, 450), (565, 450), 4),
-                    pymunk.Segment(space.static_body, (615, 678), (615, 50), 4),
-                    pymunk.Segment(space.static_body, (630, 678), (630, 50), 4),
+    static_lines = [
+                    pymunk.Segment(space.static_body, (50, 100), (195, 57), 6),
+                    pymunk.Segment(space.static_body, (550, 100), (405, 57), 6),
+                    pymunk.Segment(space.static_body, (50, 100), (50, 700), 6),
+                    pymunk.Segment(space.static_body, (565, 650), (565, 50), 6),
+                    pymunk.Segment(space.static_body, (550, 650), (550, 50), 6),
+                    pymunk.Segment(space.static_body, (550, 450), (565, 450), 6),
+                    pymunk.Segment(space.static_body, (615, 678), (615, 50), 6),
+                    pymunk.Segment(space.static_body, (630, 678), (630, 50), 6),
                     ]
+
     gen_rail(space, (50, 700), (633, 678))
     for line in static_lines:
         line.color = THECOLORS['lightgray']
-        line.elasticity = 0.95
+        line.elasticity = 0.7
 
-    out_of_bounds_area = [pymunk.Segment(space.static_body, (225, 0), (375, 0), 4),
-                          pymunk.Segment(space.static_body, (225, 0), (225, 45), 4),
-                          pymunk.Segment(space.static_body, (375, 0), (375, 45), 4)]
+    out_of_bounds_area = [pymunk.Segment(space.static_body, (0, -20), (1000, -20), 4)]
 
     for line in out_of_bounds_area:
         line.collision_type = collision_types["out_of_bounds"]
         line.color = THECOLORS["red"]
+        line.sensor = True
 
     static_lines.append(out_of_bounds_area)
     space.add(static_lines)
@@ -295,7 +300,7 @@ spring_anchor = None
 def main():
     # PyGame init
     pygame.init()
-    screen = pygame.display.set_mode((width, height))
+    screen = pygame.display.set_mode((width, height), RESIZABLE)
     clock = pygame.time.Clock()
     running = True
 
@@ -321,7 +326,6 @@ def main():
     while running:
         global score
         score += 1
-        print score
         for event in pygame.event.get():
             if event.type == QUIT:
                 running = False
@@ -346,14 +350,14 @@ def main():
             elif event.type == KEYUP and event.key == K_SPACE:
                 spring.rest_length = 150
 
-            if event.type == KEYDOWN and event.key == K_a:
-                rotary_spring.rest_angle = math.pi / 4
-            if event.type == KEYUP and event.key == K_a:
-                rotary_spring.rest_angle = 3 * math.pi / 4
-            if event.type == KEYDOWN and event.key == K_d:
+            if event.type == KEYDOWN and event.key == K_LEFT:
+                rotary_spring.rest_angle = math.pi / 5
+            if event.type == KEYUP and event.key == K_LEFT:
+                rotary_spring.rest_angle = 3 * math.pi / 5
+            if event.type == KEYDOWN and event.key == K_RIGHT:
                 rotary_spring2.rest_angle = -5 * math.pi / 4
-            if event.type == KEYUP and event.key == K_d:
-                rotary_spring2.rest_angle = - 7 * math.pi / 4
+            if event.type == KEYUP and event.key == K_RIGHT:
+                rotary_spring2.rest_angle = - 8 * math.pi / 5
 
         # Clear screen
         screen.fill(THECOLORS["black"])
