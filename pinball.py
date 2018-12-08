@@ -54,8 +54,6 @@ def add_bumper_collision_handler(space):
         global score
         score += 1000
         ball_body.apply_impulse_at_world_point(impulse, (ball_body.position[0], ball_body.position[1]))
-        print("this is your score")
-        print(score)
 
     ch.post_solve = post_solve
 
@@ -181,7 +179,7 @@ def add_paddles(space):
     rest_angle = 3 * math.pi / 5
     rest_angle2 =- 8 * math.pi / 5
     stiffness = 20000000
-    damping = 21000 * 11
+    damping = 21000 * 25
     pinjoint = pymunk.constraint.PinJoint(pointer_body,gun_body)
     pinjoint2 = pymunk.constraint.PinJoint(pointer_body2, gun_body2)
     rotary_spring = pymunk.constraint.DampedRotarySpring(pointer_body, gun_body, rest_angle, stiffness, damping)
@@ -314,7 +312,7 @@ def main():
         score += 10
     # Physics stuff
     space = pymunk.Space()
-    space.gravity = (0, -500)
+    space.gravity = (0, -600)
     draw_options = pymunk.pygame_util.DrawOptions(screen)
     spring = add_spring(space)
 
@@ -333,19 +331,7 @@ def main():
                 running = False
             elif event.type == KEYDOWN and event.key == K_SPACE:
                 spring.rest_length = 10
-
-                def normalize_vector(a, b):
-                    v = [b[0] - a[0], b[1] - a[1]]
-                    r = (v[0] ** 2 + v[1] ** 2) ** (1 / 2)
-                    v = [v[0] / r, v[1] / r]
-                    return v
-
-                direction = normalize_vector((580, 110), (580, 110))
-                strength = 5
-                print("DIRECTION IS")
-                print(direction)
-                direction = map(lambda x: x * strength, direction)
-                spawn_ball(space, (590, 200), direction)
+                spawn_ball(space, (590, 200), (0, 0))
 
             elif event.type == KEYUP and event.key == K_SPACE:
                 spring.rest_length = 150
@@ -367,8 +353,10 @@ def main():
 
         # Update physics
         fps = 60
-        dt = 1. / fps
-        space.step(dt)
+        step = 1. / fps
+
+        for x in range(10):
+            space.step(step/10)
 
         # Info and flip screen
         # screen.blit(font.render("fps: " + str(clock.get_fps()), 1, THECOLORS["white"]), (0, 0))
