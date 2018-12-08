@@ -85,7 +85,7 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
         print(ball.body.velocity)
         space.remove(circ)
     h = space.add_collision_handler(collision_types["powerup"],collision_types["ball"])
-    h.separate = remove_pow
+    h.begin = remove_pow
 
 
 def add_transport(space, posStart, posEnd, posStart2, posEnd2):  # adds segments that transport ball across the layout
@@ -216,8 +216,11 @@ def setup_level(space):
     add_out_of_bounds_collision_handler(space)
 
     add_bumper_collision_handler(space)  # Add a collision handler for bumpers to work properly
-    add_bumper(space, (200, 300), 20)  # Add a bumper with position and radius
-    add_bumper(space, (400, 300), 20)
+    add_bumper(space, (150, 300), 26)  # Add a bumper with position and radius
+    add_bumper(space, (450, 300), 26)
+    add_bumper(space, (150, 600), 26)
+    add_bumper(space, (450, 600), 26)
+    add_bumper(space, (300, 450), 26)
 
     add_powerup_collision_handler(space)   # adds power up obstacles that change ball
     add_powerup(space,THECOLORS["red"],(300,400))
@@ -355,8 +358,8 @@ def main():
         fps = 60
         step = 1. / fps
 
-        for x in range(10):
-            space.step(step/10)
+        for x in range(5):
+            space.step(step/5)
 
         # Info and flip screen
         # screen.blit(font.render("fps: " + str(clock.get_fps()), 1, THECOLORS["white"]), (0, 0))
