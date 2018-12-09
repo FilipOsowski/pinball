@@ -283,7 +283,7 @@ def add_spring(space):
     spring_ground = pymunk.Segment(spring_anchor_body, (-40, 0), (40, 0), 3)
     body = pymunk.Body(10, 1000000000000000000000000000000000000)
     body.position = (580, 100)
-    spring_top = pymunk.Segment(body, (-18.6, 0), (18.6, 0), 20)
+    spring_top = pymunk.Poly.create_box(body, (40, 30))
 
     rest_length = 100
     stiffness = 3000
@@ -333,11 +333,40 @@ def add_boundaries(space):
 spring_anchor = None
 
 
-def customize_draw_options(screen):
-    draw_options = pymunk.pygame_util.DrawOptions(screen)
-    draw_options.draw_dot = lambda a, b, c: None
+def draw(space):
+    draw_options = pymunk.pygame_util.DrawOptions(pygame.display.get_surface())
 
-    return draw_options
+    for shape in space.shapes:
+
+        color = THECOLORS["lightgray"]
+        try:
+            color = shape.color
+        except AttributeError:
+            pass
+
+        if type(shape) == pymunk.shapes.Circle:
+            pymunk.pygame_util.DrawOptions.draw_circle(
+                draw_options, shape.body.position, shape.body.angle,
+                shape.radius, color, color)
+        elif type(shape) == pymunk.shapes.Segment:
+            pymunk.pygame_util.DrawOptions.draw_fat_segment(
+                draw_options, shape.a, shape.b, shape.radius, color, color)
+
+        elif type(shape) == pymunk.shapes.Poly:
+            position = shape.body.position
+            local_vertices = shape.get_vertices()
+            world_vertices = []
+            for vertex in local_vertices:
+                new_vertex = pymunk.vec2d.Vec2d(vertex[0], vertex[1])
+                new_vertex.rotate(shape.body.angle)
+                new_vertex.x += position[0]
+                new_vertex.y += position[1]
+                world_vertices.append(new_vertex)
+            pymunk.pygame_util.DrawOptions.draw_polygon(
+                draw_options, world_vertices, shape.radius, color, color)
+
+        else:
+            print("DID NOT DRAW: " + type(shape))
 
 
 def main():
@@ -359,8 +388,6 @@ def main():
 
     transport_surface = pygame.Surface((14, 300))
     transport_surface.fill(THECOLORS["orange"])
-
-    draw_options = customize_draw_options(screen)
 
     spring = add_spring(space)
 
@@ -397,8 +424,7 @@ def main():
         screen.fill(THECOLORS["black"])
 
         # Draw stuff
-        # draw(space)
-        space.debug_draw(draw_options)
+        draw(space)
 
         # Update physics
         fps = 60
@@ -422,5 +448,4 @@ def main():
 
 
 if __name__ == '__main__':
-    yval = 100
     sys.exit(main())
