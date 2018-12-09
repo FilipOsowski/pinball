@@ -9,11 +9,19 @@ from pygame.locals import *
 from pygame.color import *
 from pymunk import Vec2d
 
-width, height = 1000, 1000
+line_color = (49, 62, 80)
+spring_color = (112, 193, 179)
+paddle_color = (242, 95, 92)
+bumper_color = (255, 224, 102)
+transport_color = (74, 86, 104)
+screen_color = (80, 81, 79)
+ball_color = (237, 247, 246)
+
+width, height = 680, 910
 score = 0
 lives = []
 numLives = 2
-transport_coordinates = [(50, 300), (50, 600), (550, 300), (550, 600)]
+transport_coordinates = [(58, 300), (58, 600), (541, 300), (541, 600)]
 
 collision_types = {
     "ball": 1,
@@ -28,11 +36,11 @@ collision_types = {
 
 def add_bumper(space, location, radius):
     body = pymunk.Body(body_type=pymunk.Body.STATIC)
-
     body.position = location
 
     shape = pymunk.Circle(body, radius)
     shape.collision_type = collision_types["bumper"]
+    shape.color = bumper_color
 
     space.add(body, shape)
 
@@ -64,9 +72,7 @@ def add_bumper_collision_handler(space):
     ch.post_solve = post_solve
 
 
-def add_powerup(
-        space, color, position
-):  # adds circular power ups that affect ball differently upon impact
+def add_powerup(space, color, position):  # adds circular power ups that affect ball differently upon impact
     pow_body = pymunk.Body(body_type=pymunk.Body.STATIC)
     pow = pymunk.Circle(pow_body, 15)
     pow.sensor = True
@@ -103,16 +109,14 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
 def add_transport(
         space, posStart, posEnd, posStart2,
         posEnd2):  # adds segments that transport ball across the layout
-    trans = pymunk.Segment(space.static_body, posStart, posEnd,
-                           7)  # segment on left
+    trans = pymunk.Segment(space.static_body, posStart, posEnd, 7)  # segment on left
     trans.collision_type = collision_types["trans1"]
-    trans.color = THECOLORS["orange"]
+    trans.color = transport_color
     trans.sensor = True
 
-    trans2 = pymunk.Segment(space.static_body, posStart2, posEnd2,
-                            7)  # segment on right
+    trans2 = pymunk.Segment(space.static_body, posStart2, posEnd2, 7)  # segment on right
     trans2.collision_type = collision_types["trans2"]
-    trans2.color = THECOLORS["orange"]
+    trans2.color = transport_color
     trans2.sensor = True
     space.add(trans, trans2)
 
@@ -159,13 +163,12 @@ def gen_rail(
         rail.append(
             pymunk.Segment(space.static_body, (pX, pY),
                            (pX + (distX / tot), pY + (distY / tot) +
-                            ((tot / 2) - num) * 3), 6))
+                            ((tot / 2) - num) * 3), 15))
         pX += distX / tot
         pY += distY / tot
         pY += ((tot / 2) - num) * 3
     for line in rail:
-        line.color = THECOLORS['lightgray']
-        line.whatever = "something"
+        line.color = line_color
         line.elasticity = 0.21
         space.add(line)
     return rail
@@ -176,7 +179,7 @@ def spawn_ball(space, position, direction):
     ball_body.position = position
     ball_shape = pymunk.Circle(ball_body, 13)
 
-    ball_shape.color = THECOLORS["green"]
+    ball_shape.color = ball_color
     ball_shape.elasticity = 0.5
     ball_shape.collision_type = collision_types["ball"]
 
@@ -201,6 +204,7 @@ def add_paddles(space):
     paddle_body_1.position = pointer_body.position
     paddle_shape_1 = pymunk.Poly(paddle_body_1, ps_1)
     paddle_shape_1.elasticity = 0.1
+    paddle_shape_1.color = paddle_color
 
     moment_2 = pymunk.moment_for_poly(1, ps_2)
     paddle_body_2 = pymunk.Body(9999, moment_2)
@@ -208,6 +212,7 @@ def add_paddles(space):
     paddle_body_2.position = pointer_body2.position
     paddle_shape_2 = pymunk.Poly(paddle_body_2, ps_2)
     paddle_shape_2.elasticity = 0.1
+    paddle_shape_2.color = paddle_color
 
     rest_angle = 3 * math.pi / 5
     rest_angle2 = -8 * math.pi / 5
@@ -249,11 +254,11 @@ def setup_level(space):
     add_bumper(space, (450, 600), 26)
     add_bumper(space, (300, 450), 26)
 
-    add_powerup_collision_handler(
-        space)  # adds power up obstacles that change ball
-    add_powerup(space, THECOLORS["red"], (300, 400))
-    add_powerup(space, THECOLORS["blue"], (475, 350))
-    add_powerup(space, THECOLORS["yellow"], (100, 150))
+    # add_powerup_collision_handler(
+    #     space)  # adds power up obstacles that change ball
+    # add_powerup(space, THECOLORS["red"], (300, 400))
+    # add_powerup(space, THECOLORS["blue"], (475, 350))
+    # add_powerup(space, THECOLORS["yellow"], (100, 150))
 
     add_transport(
         space, transport_coordinates[0], transport_coordinates[1],
@@ -279,11 +284,12 @@ def add_out_of_bounds_collision_handler(space):
 
 def add_spring(space):
     spring_anchor_body = pymunk.Body(body_type=pymunk.Body.STATIC)
-    spring_anchor_body.position = (590, 50)
+    spring_anchor_body.position = (590, 108)
     spring_ground = pymunk.Segment(spring_anchor_body, (-40, 0), (40, 0), 3)
     body = pymunk.Body(10, 1000000000000000000000000000000000000)
-    body.position = (580, 100)
+    body.position = (580, 158)
     spring_top = pymunk.Poly.create_box(body, (40, 30))
+    spring_top.color = spring_color
 
     rest_length = 100
     stiffness = 3000
@@ -298,20 +304,21 @@ def add_spring(space):
 
 
 def add_boundaries(space):
+    radius = 15
     static_lines = [
-        pymunk.Segment(space.static_body, (50, 100), (195, 57), 6),
-        pymunk.Segment(space.static_body, (550, 100), (405, 57), 6),
-        pymunk.Segment(space.static_body, (50, 100), (50, 700), 6),
-        pymunk.Segment(space.static_body, (565, 650), (565, 50), 6),
-        pymunk.Segment(space.static_body, (550, 650), (550, 50), 6),
-        pymunk.Segment(space.static_body, (550, 450), (565, 450), 6),
-        pymunk.Segment(space.static_body, (615, 678), (615, 50), 6),
-        pymunk.Segment(space.static_body, (630, 678), (630, 50), 6),
+        pymunk.Segment(space.static_body, (50, 100), (185, 53), radius),
+        pymunk.Segment(space.static_body, (550, 100), (415, 53), radius),
+        pymunk.Segment(space.static_body, (50, 100), (50, 700), radius),
+        pymunk.Segment(space.static_body, (565, 650), (565, 50), radius),
+        pymunk.Segment(space.static_body, (550, 650), (550, 50), radius),
+        pymunk.Segment(space.static_body, (550, 450), (565, 450), radius),
+        pymunk.Segment(space.static_body, (640, 678), (640, 50), radius),
+        pymunk.Segment(space.static_body, (630, 678), (630, 50), radius),
     ]
 
     gen_rail(space, (50, 700), (633, 678))
     for line in static_lines:
-        line.color = THECOLORS['lightgray']
+        line.color = line_color
         line.elasticity = 0.5
 
     static_lines[0].elasticity = 0.2
@@ -387,11 +394,13 @@ def main():
     space.damping = 0.9
 
     transport_surface = pygame.Surface((14, 300))
-    transport_surface.fill(THECOLORS["orange"])
+    transport_surface.fill(transport_color)
 
     spring = add_spring(space)
 
     rotary_spring, rotary_spring2 = add_paddles(space)
+
+    image = pygame.image.load("background.jpg")
 
     # Start game
     setup_level(space)
@@ -406,7 +415,7 @@ def main():
                 running = False
             elif event.type == KEYDOWN and event.key == K_SPACE:
                 spring.rest_length = 10
-                spawn_ball(space, (590, 200), (0, 0))
+                spawn_ball(space, (600, 300), (0, 0))
 
             elif event.type == KEYUP and event.key == K_SPACE:
                 spring.rest_length = 150
@@ -421,10 +430,9 @@ def main():
                 rotary_spring2.rest_angle = -8 * math.pi / 5
 
         # Clear screen
-        screen.fill(THECOLORS["black"])
+        screen.fill(screen_color)
 
         # Draw stuff
-        draw(space)
 
         # Update physics
         fps = 60
@@ -434,11 +442,13 @@ def main():
             space.step(step / 5)
 
         # Info and flip screen
+        screen.blit(image, (0, 0))
         screen.blit(
             font.render("fps: " + str(clock.get_fps()), 1, THECOLORS["white"]),
             (0, height - 25))
         screen.blit(
             font.render("Score: " + str(score), 1, THECOLORS["white"]), (0, 0))
+        draw(space)
         screen.blit(transport_surface, (transport_coordinates[1][0] - 5,
                                         height - transport_coordinates[1][1]))
         screen.blit(transport_surface, (transport_coordinates[3][0] - 5,
