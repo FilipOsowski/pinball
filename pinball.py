@@ -253,12 +253,13 @@ def spawn_ball(space, position, direction):
 
 def add_paddles(space):
     pointer_body = pymunk.Body(body_type=pymunk.Body.STATIC)
-    pointer_body.position = 204, 60
+    pointer_body.position = 202, 60
     pointer_body2 = pymunk.Body(body_type=pymunk.Body.STATIC)
-    pointer_body2.position = 396, 60
+    pointer_body2.position = 398, 60
 
-    ps_1 = [(20, 0), (0, 0), (5, 80), (15, 80)]
-    ps_2 = [(20, 0), (0, 0), (5, -80), (15, -80)]
+    # ps_1 = [(20, 0), (0, 0), (5, 80), (15, 80), ]
+    ps_1 = [(10, 0), (20, 5), (0, 5), (5, 80), (15, 80), (12, 2), (18, 3), (8, 3), (2, 2), (5, 3)]
+    ps_2 = [(20, -5), (0, -5), (5, -80), (15, -80), (10, 0), (12, -2), (18, -3), (8, -3), (2, -2), (5, -3)]
 
     moment_1 = pymunk.moment_for_poly(1, ps_1)
     paddle_body_1 = pymunk.Body(9999, moment_1)
