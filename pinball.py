@@ -195,8 +195,8 @@ def add_paddles(space):
     pointer_body2 = pymunk.Body(body_type=pymunk.Body.STATIC)
     pointer_body2.position = 396, 60
 
-    ps_1 = [(20, 0), (0, 0), (0, 80), (20, 80)]
-    ps_2 = [(20, 0), (0, 0), (0, -80), (20, -80)]
+    ps_1 = [(20, 0), (0, 0), (5, 80), (15, 80)]
+    ps_2 = [(20, 0), (0, 0), (5, -80), (15, -80)]
 
     moment_1 = pymunk.moment_for_poly(1, ps_1)
     paddle_body_1 = pymunk.Body(9999, moment_1)
