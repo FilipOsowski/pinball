@@ -32,6 +32,13 @@ collision_types = {
     "trans2": 6,
     "fan": 7
 }
+pow_timewait= {#adjust all values to -1 if you want to stop power ups from appearing
+    "blue": 100,
+    "red": 0,
+    "yellow": 120
+
+}
+
 
 
 def add_bumper(space, location, radius):
@@ -72,49 +79,99 @@ def add_bumper_collision_handler(space):
     ch.post_solve = post_solve
 
 
-def add_powerup(space, color, position):  # adds circular power ups that affect ball differently upon impact
-    pow_body = pymunk.Body(body_type=pymunk.Body.STATIC)
-    pow = pymunk.Circle(pow_body, 15)
-    pow.sensor = True
-    pow.body.position = position
+def add_powerup(space,color,position): #adds circular power ups that affect ball differently upon impact
+    body = pymunk.Body(body_type=pymunk.Body.STATIC)
+    pow=pymunk.Circle(body,10)
+#    pow.density = 1.225
+    pow.body.position= position
     pow.collision_type = collision_types["powerup"]
     pow.color = color
-    space.add(pow)
+    space.add(pow,body)
+    if color == THECOLORS["red"]:#once powerups are displayed sets dictionary value to -1
+        pow_timewait["red"]= -1
+    if color == THECOLORS["yellow"]:
+        pow_timewait["yellow"]=-1
+    if color ==THECOLORS["blue"]:
+        pow_timewait["blue"]=-1
 
 
 def add_powerup_collision_handler(space):  # collision between ball and powerup
     def remove_pow(arbiter, space, data):
         circ = arbiter.shapes[0]
         ball = arbiter.shapes[1]
-        if (circ.color == THECOLORS["blue"]):  # makes ball go faster
-            space.remove(ball.body, ball)
-            spawn_ball(space, ball.body.position, ball.body.velocity * 2)
-        elif (circ.color == THECOLORS["red"]
-              ):  # adds new ball in screen and makes ball go faster
-            spawn_ball(space, (random.randint(50, 550), 500),
-                       (random.randint(-100, 100), random.randint(-100, 100)))
-            space.remove(ball.body, ball)
-            spawn_ball(space, ball.body.position, ball.body.velocity * 2)
+        if circ.color == THECOLORS["blue"]:  # makes ball go faster
+            print("fast")
+            wait=150
+            color ="blue"
+            def normalized_vector_between(a, b):
+                v = [b.position[0] - a.position[0], b.position[1] - a.position[1]]
+                r = (v[0] ** 2 + v[1] ** 2) ** (1 / 2)
+                v = [v[0] / r, v[1] / r]
+                return v
+
+            bumper_body = arbiter.shapes[0].body
+            ball_body = arbiter.shapes[1].body
+
+            strength_of_bumper = 5
+            impulse = normalized_vector_between(bumper_body, ball_body)
+            impulse = [impulse[0] * strength_of_bumper, impulse[1] * strength_of_bumper]
+
+            ball_body.apply_impulse_at_world_point(impulse, (ball_body.position[0], ball_body.position[1]))
+        elif (circ.color == THECOLORS["red"]):  # adds new ball in screen and makes ball go faster
+            print("both")
+            color = "red"
+            def normalized_vector_between(a, b):
+                v = [b.position[0] - a.position[0], b.position[1] - a.position[1]]
+                r = (v[0] ** 2 + v[1] ** 2) ** (1 / 2)
+                v = [v[0] / r, v[1] / r]
+                return v
+
+            bumper_body = arbiter.shapes[0].body
+            ball_body = arbiter.shapes[1].body
+
+            strength_of_bumper = 5
+            impulse = normalized_vector_between(bumper_body, ball_body)
+            impulse = [impulse[0] * strength_of_bumper, impulse[1] * strength_of_bumper]
+
+            ball_body.apply_impulse_at_world_point(impulse, (ball_body.position[0], ball_body.position[1]))
+            wait=600
+            spawn_ball(space, (random.randint(50, 550), 500), (random.randint(-100, 100), random.randint(-100, 100)))
         else:  # adds new ball in screen
-            spawn_ball(space, (random.randint(50, 550), 500),
-                       (random.randint(-100, 100), random.randint(-100, 100)))
-        space.remove(circ)
-        return False
+            color="yellow"
+            print("new")
+            wait= 250
+            spawn_ball(space, (random.randint(50, 550), 500), (random.randint(-100, 100), random.randint(-100, 100)))
+        print(ball.body.velocity)
+        pow_timewait[color]=wait
+        space.remove(circ, circ.body)
 
-    h = space.add_collision_handler(collision_types["powerup"],
-                                    collision_types["ball"])
+        #respawn_powerup(color, space)
+
+    h = space.add_collision_handler(collision_types["powerup"], collision_types["ball"])
     h.begin = remove_pow
-
+def check_powerup(space):#checks to see if powerups are displaying
+    for color in pow_timewait:
+        if color=="blue":
+            pos= (random.randint(100,475), random.randint(120,300))
+        elif color == "red":
+            pos= (random.randint(175,425),random.randint(500,725))
+        elif color=="yellow":
+            pos=(random.randint(75,150), 450)
+        if pow_timewait[color]==0:#displays powerups again after time has passed
+            add_powerup(space,THECOLORS[color],pos)
+        elif pow_timewait[color]>0:#if they've been hit, counts down the time until they will reappear
+            pow_timewait[color]-=1
 
 def add_transport(
         space, posStart, posEnd, posStart2,
         posEnd2):  # adds segments that transport ball across the layout
-    trans = pymunk.Segment(space.static_body, posStart, posEnd, 7)  # segment on left
+    body = pymunk.Body(body_type=pymunk.Body.STATIC)
+    trans = pymunk.Segment(body, posStart, posEnd, 7)  # segment on left
     trans.collision_type = collision_types["trans1"]
     trans.color = transport_color
     trans.sensor = True
-
-    trans2 = pymunk.Segment(space.static_body, posStart2, posEnd2, 7)  # segment on right
+    body2 = pymunk.Body(body_type=pymunk.Body.STATIC)
+    trans2 = pymunk.Segment(body2, posStart2, posEnd2, 7)  # segment on right
     trans2.collision_type = collision_types["trans2"]
     trans2.color = transport_color
     trans2.sensor = True
@@ -195,8 +252,8 @@ def add_paddles(space):
     pointer_body2 = pymunk.Body(body_type=pymunk.Body.STATIC)
     pointer_body2.position = 396, 60
 
-    ps_1 = [(20, 0), (0, 0), (0, 80), (20, 80)]
-    ps_2 = [(20, 0), (0, 0), (0, -80), (20, -80)]
+    ps_1 = [(20, 0), (0, 0), (5, 80), (15, 80)]
+    ps_2 = [(20, 0), (0, 0), (5, -80), (15, -80)]
 
     moment_1 = pymunk.moment_for_poly(1, ps_1)
     paddle_body_1 = pymunk.Body(9999, moment_1)
@@ -253,12 +310,11 @@ def setup_level(space):
     add_bumper(space, (150, 600), 26)
     add_bumper(space, (450, 600), 26)
     add_bumper(space, (300, 450), 26)
-
-    # add_powerup_collision_handler(
-    #     space)  # adds power up obstacles that change ball
-    # add_powerup(space, THECOLORS["red"], (300, 400))
-    # add_powerup(space, THECOLORS["blue"], (475, 350))
-    # add_powerup(space, THECOLORS["yellow"], (100, 150))
+    add_powerup_collision_handler(space)  # adds power up obstacles that change ball
+    # add_powerup(space,THECOLORS["red"],(random.randint(250,400),random.randint(500,700)))
+    # add_powerup(space, THECOLORS["blue"], (random.randint(400,500), random.randint(80,150)))
+    # add_powerup(space, THECOLORS["yellow"], (150, random.randint(100,600)))
+    check_powerup(space)#displays powerups, (if you dont want them displayed, set pow_timewait values to -1
 
     add_transport(
         space, transport_coordinates[0], transport_coordinates[1],
@@ -408,6 +464,7 @@ def main():
     while running:
         global score
         score += 1
+        check_powerup(space)
         for event in pygame.event.get():
             if event.type == QUIT:
                 running = False
