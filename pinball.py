@@ -82,6 +82,7 @@ def add_bumper_collision_handler(space):
 def add_powerup(space,color,position): #adds circular power ups that affect ball differently upon impact
     body = pymunk.Body(body_type=pymunk.Body.STATIC)
     pow=pymunk.Circle(body,10)
+    pow.sensor = True
 #    pow.density = 1.225
     pow.body.position= position
     pow.collision_type = collision_types["powerup"]
@@ -180,6 +181,8 @@ def add_transport(
     def move_ball_left(
             arbiter, space, data
     ):  # changes ball's position to the left, after collision with the right segment
+        global score
+        score += 500
         ball = arbiter.shapes[0]
         space.remove(ball.body, ball)  # removes ball from space
         spawn_ball(
@@ -190,6 +193,8 @@ def add_transport(
     def move_ball_right(
             arbiter, space, data
     ):  # changes ball's position to the right, after collision with the left segment
+        global score
+        score += 500
         ball = arbiter.shapes[0]
         space.remove(ball.body, ball)
         spawn_ball(
@@ -442,7 +447,7 @@ def main():
     # Display some text
     font = pygame.font.SysFont("Arial", 30)
     text = ""
-    score = 5
+    score = 0
 
     # Physics stuff
     space = pymunk.Space()
@@ -463,7 +468,6 @@ def main():
 
     while running:
         global score
-        score += 1
         check_powerup(space)
         for event in pygame.event.get():
             if event.type == QUIT:
