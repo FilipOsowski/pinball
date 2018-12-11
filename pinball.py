@@ -4,6 +4,7 @@ import math
 import pygame
 import pymunk
 import pymunk.pygame_util
+import Animator
 
 from pygame.locals import *
 from pygame.color import *
@@ -22,6 +23,9 @@ score = 0
 lives = []
 numLives = 2
 transport_coordinates = [(58, 300), (58, 600), (541, 300), (541, 600)]
+fan_shape, fan_base_shape = None, None
+fan_bounds = (100, 500)
+animators = []
 
 collision_types = {
     "ball": 1,
@@ -66,6 +70,21 @@ def add_bumper_collision_handler(space):
         bumper_body = arbiter.shapes[1].body
         ball_body = arbiter.shapes[0].body
 
+        radius = arbiter.shapes[1].radius
+        pos = bumper_body.position
+        screen = pygame.display.get_surface()
+
+        def animate(percentage_complete):
+            s = pygame.Surface((52, 52))
+            s.set_colorkey((0, 0, 0))
+            s.set_alpha(255 * (1 - percentage_complete))
+            # pygame.draw.circle(s, (233, 255, 166), (int(pos.x), int(height - pos.y)), int(radius))
+            pygame.draw.circle(s, (233, 255, 166), (26, 26), int(radius))
+            screen.blit(s, (int(pos.x - radius), int(height - pos.y - radius)))
+
+
+        animators.append(Animator.Animator(30, animate))
+
         strength_of_bumper = 20
         impulse = normalized_vector_between(bumper_body, ball_body)
         impulse = [
@@ -95,6 +114,28 @@ def add_powerup(space,color,position): #adds circular power ups that affect ball
     if color ==THECOLORS["blue"]:
         pow_timewait["blue"]=-1
 
+    radius = pow.radius
+    screen = pygame.display.get_surface()
+    pos = body.position
+    multiplier = 4
+
+    def animate(percentage_complete):
+        s = pygame.Surface((radius * multiplier * 2, radius * multiplier * 2))
+        s.set_colorkey((0, 0, 0))
+        s.set_alpha(255 * (1 - (percentage_complete % 1)))
+        pygame.draw.circle(s, color, (int(radius) * multiplier, int(radius) * multiplier), int(radius * (1 + multiplier/2 * (percentage_complete % 1))), 2)
+        screen.blit(s, (int(pos.x - multiplier * radius), int(height - pos.y - multiplier * radius)))
+
+    def custom_is_done():
+        if pow in space.shapes:
+            return False
+        return True
+
+    custom_animator = Animator.Animator(45, animate)
+    custom_animator.is_done = custom_is_done
+
+    animators.append(custom_animator)
+
 
 def add_powerup_collision_handler(space):  # collision between ball and powerup
     def remove_pow(arbiter, space, data):
@@ -116,8 +157,12 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
             strength_of_bumper = 5
             impulse = normalized_vector_between(bumper_body, ball_body)
             impulse = [impulse[0] * strength_of_bumper, impulse[1] * strength_of_bumper]
+            print("IMPULSE IS")
+            print(impulse)
 
-            ball_body.apply_impulse_at_world_point(impulse, (ball_body.position[0], ball_body.position[1]))
+            # ball_body.apply_impulse_at_world_point(impulse, (ball_body.position[0], ball_body.position[1]))
+            v = ball_body.velocity
+            ball_body.velocity = (v[0] * 1.5, v[1] * 1.5)
         elif (circ.color == THECOLORS["red"]):  # adds new ball in screen and makes ball go faster
             print("both")
             color = "red"
@@ -145,6 +190,8 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
         print(ball.body.velocity)
         pow_timewait[color]=wait
         space.remove(circ, circ.body)
+
+        return False
 
         #respawn_powerup(color, space)
 
@@ -188,6 +235,19 @@ def add_transport(
         spawn_ball(
             space, (posStart[0] + 20, ball.body.position.y), ball.body.velocity
         )  # spawns ball in again with new velocity and in the left position
+
+        screen = pygame.display.get_surface()
+
+        def animate(percentage_complete):
+            s = pygame.Surface((14, 300))
+            s.fill((142, 150, 163))
+            s.set_alpha(255 * (1 - percentage_complete))
+            print("ALPHA IS")
+            print(s.get_alpha())
+            screen.blit(s, (transport_coordinates[1][0] - 5,
+                                        height - transport_coordinates[1][1]))
+        animators.append(Animator.Animator(20, animate))
+
         return False
 
     def move_ball_right(
@@ -201,6 +261,19 @@ def add_transport(
             space, (posStart2[0] - 20, ball.body.position.y),
             ball.body.velocity
         )  # spawns ball in again with new velocity and in the right position
+
+        screen = pygame.display.get_surface()
+
+        def animate(percentage_complete):
+            s = pygame.Surface((14, 300))
+            s.fill((142, 150, 163))
+            s.set_alpha(255 * (1 - percentage_complete))
+            print("ALPHA IS")
+            print(s.get_alpha())
+            screen.blit(s, (transport_coordinates[3][0] - 5,
+                            height - transport_coordinates[3][1]))
+        animators.append(Animator.Animator(20, animate))
+
         return False
 
     h = space.add_collision_handler(  # adds collision betweel ball and left transport
@@ -327,6 +400,9 @@ def setup_level(space):
         transport_coordinates[2],
         transport_coordinates[3])  # adds transport segments that move ball
 
+    global fan_shape, fan_base_shape
+    fan_shape, fan_base_shape = add_fan(space=space, fan_width=50, fan_height=300, position=(300, 175), speed=50, bounds=(75, 480))
+
 
 def add_out_of_bounds_collision_handler(space):
     def begin(arbiter, space, data):
@@ -363,6 +439,43 @@ def add_spring(space):
     space.add(spring_top, body, spring_anchor_body, spring_ground,
               dampened_spring)
     return dampened_spring
+
+
+def add_fan(space, fan_width, fan_height, position, speed, bounds):
+    global fan_bounds
+    fan_bounds = bounds
+
+    fan_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
+    fan_body.position = position
+    fan_body.velocity = (speed, 0)
+    fan_shape = pymunk.Poly(fan_body, [(fan_width, fan_height), (fan_width, 0), (0, 0), (0, fan_height)])
+    fan_shape.collision_type = collision_types["fan"]
+    fan_shape.sensor = True
+
+    fan_base_width = fan_width
+    fan_base_height = 15
+    fan_base_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
+    fan_base_body.position = (fan_body.position[0], fan_body.position[1] - fan_base_height)
+    fan_base_body.velocity = (speed, 0)
+    fan_base_shape = pymunk.Poly(fan_base_body, [(fan_base_width, fan_base_height), (fan_base_width, 0), (0, 0), (0, fan_base_height)])
+
+    ch = space.add_collision_handler(collision_types["ball"], collision_types["fan"])
+
+    global fan_surface
+    fan_surface = pygame.Surface((fan_width, fan_height))
+    fan_surface.fill(THECOLORS["red"])
+    fan_surface.set_alpha(60)
+
+    def pre_solve(arbiter, space, data):
+        ball_body = arbiter.shapes[0].body
+        ball_body.apply_force_at_local_point((0, 3000), (0, 0))
+        return False
+
+    ch.pre_solve = pre_solve
+
+    space.add(fan_body, fan_shape, fan_base_body, fan_base_shape)
+
+    return fan_shape, fan_base_shape
 
 
 def add_boundaries(space):
@@ -402,8 +515,18 @@ def add_boundaries(space):
 spring_anchor = None
 
 
+def change_fan_direction():
+    v = fan_shape.body.velocity
+    fan_shape.body.velocity = (v[0] * -1, v[1])
+    fan_base_shape.body.velocity = (v[0] * -1, v[1])
+
+
 def draw(space):
     draw_options = pymunk.pygame_util.DrawOptions(pygame.display.get_surface())
+
+    if fan_shape.body.position[0] > fan_bounds[1] or fan_shape.body.position[0] < fan_bounds[0]:
+        change_fan_direction()
+
 
     for shape in space.shapes:
 
@@ -422,20 +545,27 @@ def draw(space):
                 draw_options, shape.a, shape.b, shape.radius, color, color)
 
         elif type(shape) == pymunk.shapes.Poly:
-            position = shape.body.position
-            local_vertices = shape.get_vertices()
-            world_vertices = []
-            for vertex in local_vertices:
-                new_vertex = pymunk.vec2d.Vec2d(vertex[0], vertex[1])
-                new_vertex.rotate(shape.body.angle)
-                new_vertex.x += position[0]
-                new_vertex.y += position[1]
-                world_vertices.append(new_vertex)
-            pymunk.pygame_util.DrawOptions.draw_polygon(
-                draw_options, world_vertices, shape.radius, color, color)
+            if not shape.collision_type == collision_types["fan"]:
+                position = shape.body.position
+                local_vertices = shape.get_vertices()
+                world_vertices = []
+                for vertex in local_vertices:
+                    new_vertex = pymunk.vec2d.Vec2d(vertex[0], vertex[1])
+                    new_vertex.rotate(shape.body.angle)
+                    new_vertex.x += position[0]
+                    new_vertex.y += position[1]
+                    world_vertices.append(new_vertex)
+                pymunk.pygame_util.DrawOptions.draw_polygon(
+                    draw_options, world_vertices, shape.radius, color, color)
+            else:
+                fan_height = shape.get_vertices()[3][1]
+                pygame.display.get_surface().blit(fan_surface, (shape.body.position[0], height - fan_height - shape.body.position[1]))
 
+    for a in animators:
+        if a.is_done():
+            animators.remove(a)
         else:
-            print("DID NOT DRAW: " + type(shape))
+            a.animate()
 
 
 def main():
@@ -510,11 +640,11 @@ def main():
             (0, height - 25))
         screen.blit(
             font.render("Score: " + str(score), 1, THECOLORS["white"]), (0, 0))
-        draw(space)
         screen.blit(transport_surface, (transport_coordinates[1][0] - 5,
                                         height - transport_coordinates[1][1]))
         screen.blit(transport_surface, (transport_coordinates[3][0] - 5,
                                         height - transport_coordinates[3][1]))
+        draw(space)
         pygame.display.flip()
         clock.tick(fps)
 
