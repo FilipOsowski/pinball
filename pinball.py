@@ -26,6 +26,8 @@ transport_coordinates = [(58, 300), (58, 600), (541, 300), (541, 600)]
 fan_shape, fan_base_shape = None, None
 fan_bounds = (100, 500)
 animators = []
+gameDisplay = pygame.display.set_mode((680, 910))
+clock = pygame.time.Clock()
 
 collision_types = {
     "ball": 1,
@@ -43,6 +45,7 @@ pow_timewait= {#adjust all values to -1 if you want to stop power ups from appea
 
 }
 
+black = (0,0,0)
 
 
 def add_bumper(space, location, radius):
@@ -55,6 +58,9 @@ def add_bumper(space, location, radius):
 
     space.add(body, shape)
 
+def text_objects(text, font):
+    textSurface = font.render(text, True, black)
+    return textSurface, textSurface.get_rect()
 
 def add_bumper_collision_handler(space):
     ch = space.add_collision_handler(collision_types["ball"],
@@ -408,8 +414,9 @@ def add_out_of_bounds_collision_handler(space):
     def begin(arbiter, space, data):
         ball_shape = arbiter.shapes[0]
         space.remove(ball_shape, ball_shape.body)
+        global numLives
         if numLives > -1:
-            global numLives
+
             space.remove(lives[numLives])
             numLives -= 1
 
@@ -519,6 +526,7 @@ def change_fan_direction():
     v = fan_shape.body.velocity
     fan_shape.body.velocity = (v[0] * -1, v[1])
     fan_base_shape.body.velocity = (v[0] * -1, v[1])
+    print("gello you printef")
 
 
 def draw(space):
@@ -566,11 +574,31 @@ def draw(space):
             animators.remove(a)
         else:
             a.animate()
+def game_intro():
+    intro = True
+
+    while intro:
+        for event in pygame.event.get():
+            print(event)
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+
+        gameDisplay.fill(THECOLORS['whitesmoke'])
+        largeText = pygame.font.Font('freesansbold.ttf', 205)
+        TextSurf, TextRect = text_objects("Pinball", largeText)
+        TextRect.center = ((680 / 2), (910 / 2))
+        gameDisplay.blit(TextSurf, TextRect)
+        pygame.display.update()
+        clock.tick(15)
 
 
 def main():
     # PyGame init
     pygame.init()
+    started = False
+    gameOver = False
+
     screen = pygame.display.set_mode((width, height), RESIZABLE)
     clock = pygame.time.Clock()
     running = True
@@ -586,6 +614,9 @@ def main():
     space.damping = 0.9
 
     transport_surface = pygame.Surface((14, 300))
+    intro = pygame.Surface((680, 910))
+
+    intro.fill(transport_color)
     transport_surface.fill(transport_color)
 
     spring = add_spring(space)
@@ -620,6 +651,10 @@ def main():
                 rotary_spring2.rest_angle = -6 * math.pi / 5
             if event.type == KEYUP and event.key == K_RIGHT:
                 rotary_spring2.rest_angle = -8 * math.pi / 5
+            if event.type == MOUSEBUTTONDOWN:
+                started = True
+        if numLives <= -1:
+            gameOver = True
 
         # Clear screen
         screen.fill(screen_color)
@@ -635,16 +670,28 @@ def main():
 
         # Info and flip screen
         screen.blit(image, (0, 0))
+        largeText = pygame.font.Font('freesansbold.ttf', 205)
+
         screen.blit(
             font.render("fps: " + str(clock.get_fps()), 1, THECOLORS["white"]),
             (0, height - 25))
         screen.blit(
             font.render("Score: " + str(score), 1, THECOLORS["white"]), (0, 0))
+        draw(space)
+
         screen.blit(transport_surface, (transport_coordinates[1][0] - 5,
                                         height - transport_coordinates[1][1]))
         screen.blit(transport_surface, (transport_coordinates[3][0] - 5,
                                         height - transport_coordinates[3][1]))
         draw(space)
+        if not started :
+            screen.blit(intro, (0,0))
+            screen.blit(font.render("Pinball ", 1, THECOLORS["white"]), (300, 455))
+        if gameOver:
+            screen.blit(intro, (0, 0))
+            screen.blit(font.render("Game Over", 1, THECOLORS["white"]), (300, 455))
+            screen.blit(font.render("Score:  " + str(score), 1, THECOLORS["white"]), (300, 490))
+
         pygame.display.flip()
         clock.tick(fps)
 
