@@ -147,7 +147,7 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
     def remove_pow(arbiter, space, data):
         circ = arbiter.shapes[0]
         ball = arbiter.shapes[1]
-        if circ.color == THECOLORS["blue"]:  # makes ball go faster
+        if circ.color == THECOLORS["blue"]:  # Adjusts gravity of the game
             print("fast")
             wait=150
             color ="blue"
@@ -159,7 +159,6 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
 
             bumper_body = arbiter.shapes[0].body
             ball_body = arbiter.shapes[1].body
-
             strength_of_bumper = 5
             impulse = normalized_vector_between(bumper_body, ball_body)
             impulse = [impulse[0] * strength_of_bumper, impulse[1] * strength_of_bumper]
@@ -168,7 +167,12 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
 
             # ball_body.apply_impulse_at_world_point(impulse, (ball_body.position[0], ball_body.position[1]))
             v = ball_body.velocity
-            ball_body.velocity = (v[0] * 1.5, v[1] * 1.5)
+            # ball_body.velocity = (v[0] * 1.5, v[1] * 1.5)
+            if space.gravity == (0,-100):
+                space.gravity = (0,-600)
+            else:
+                space.gravity = (0, -100)
+
         elif (circ.color == THECOLORS["red"]):  # adds new ball in screen and makes ball go faster
             print("both")
             color = "red"
@@ -526,7 +530,7 @@ def change_fan_direction():
     v = fan_shape.body.velocity
     fan_shape.body.velocity = (v[0] * -1, v[1])
     fan_base_shape.body.velocity = (v[0] * -1, v[1])
-    print("gello you printef")
+
 
 
 def draw(space):
@@ -597,6 +601,8 @@ def main():
     # PyGame init
     pygame.init()
     started = False
+    global numLives
+    numLives = 2
     gameOver = False
 
     screen = pygame.display.set_mode((width, height), RESIZABLE)
@@ -630,6 +636,7 @@ def main():
 
     while running:
         global score
+        global gameOver
         check_powerup(space)
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -653,6 +660,14 @@ def main():
                 rotary_spring2.rest_angle = -8 * math.pi / 5
             if event.type == MOUSEBUTTONDOWN:
                 started = True
+                if gameOver:
+                    gameOver = False
+                    numLives=2
+                    space.add(lives[0])
+                    space.add(lives[1])
+                    space.add(lives[2])
+                    score = 0
+
         if numLives <= -1:
             gameOver = True
 
