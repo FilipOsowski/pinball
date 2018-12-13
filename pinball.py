@@ -157,25 +157,13 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
             print("fast")
             wait=150
             color ="blue"
-            def normalized_vector_between(a, b):
-                v = [b.position[0] - a.position[0], b.position[1] - a.position[1]]
-                r = (v[0] ** 2 + v[1] ** 2) ** (1 / 2)
-                v = [v[0] / r, v[1] / r]
-                return v
 
-            bumper_body = arbiter.shapes[0].body
-            ball_body = arbiter.shapes[1].body
-            strength_of_bumper = 5
-            impulse = normalized_vector_between(bumper_body, ball_body)
-            impulse = [impulse[0] * strength_of_bumper, impulse[1] * strength_of_bumper]
-            print("IMPULSE IS")
-            print(impulse)
 
             # ball_body.apply_impulse_at_world_point(impulse, (ball_body.position[0], ball_body.position[1]))
-            v = ball_body.velocity
+            # v = ball_body.velocity
             # ball_body.velocity = (v[0] * 1.5, v[1] * 1.5)
             space.gravity = (0, -100)
-            print("gravitiy is made zero")
+            print("gravity is made zero")
 
 
             def change_back():
@@ -187,18 +175,7 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
 
             # start thread after 10 seconds
             t.start()
-            # def do_something(sc):
-            #     space.gravity = (0, -600)
-            #     print("gravity changed back")
-            #     # do your stuff
-            #     s.enter(5, 1, do_something, (sc,))
-            #
-            # s.enter(5, 1, do_something, (s,))
-            # s.run()
-            # if space.gravity == (0,-100):
-            #     space.gravity = (0,-600)
-            # else:
-            #     space.gravity = (0, -100)
+
 
         elif (circ.color == THECOLORS["red"]):  # adds new ball in screen and makes ball go faster
             print("both")
@@ -279,8 +256,8 @@ def add_transport(
             s = pygame.Surface((14, 300))
             s.fill((142, 150, 163))
             s.set_alpha(255 * (1 - percentage_complete))
-            print("ALPHA IS")
-            print(s.get_alpha())
+           # print("ALPHA IS")
+            #print(s.get_alpha())
             screen.blit(s, (transport_coordinates[1][0] - 5,
                                         height - transport_coordinates[1][1]))
         animators.append(Animator.Animator(20, animate))
@@ -305,8 +282,8 @@ def add_transport(
             s = pygame.Surface((14, 300))
             s.fill((142, 150, 163))
             s.set_alpha(255 * (1 - percentage_complete))
-            print("ALPHA IS")
-            print(s.get_alpha())
+            #print("ALPHA IS")
+            #print(s.get_alpha())
             screen.blit(s, (transport_coordinates[3][0] - 5,
                             height - transport_coordinates[3][1]))
         animators.append(Animator.Animator(20, animate))
@@ -445,12 +422,12 @@ def setup_level(space):
 def add_out_of_bounds_collision_handler(space):
     def begin(arbiter, space, data):
         ball_shape = arbiter.shapes[0]
-        space.remove(ball_shape, ball_shape.body)
-        global numLives
-        if numLives > -1:
+        space.remove(ball_shape, ball_shape.body)  # removes ball if it collides with the out of bounds zone
+        global numLives  # gets the global variable for num lives
+        if numLives > -1:  # if the lives havent run out
 
-            space.remove(lives[numLives])
-            numLives -= 1
+            space.remove(lives[numLives])# removes the lives from the screen
+            numLives -= 1 #subtracts a life
 
         return True
 
