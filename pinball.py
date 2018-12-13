@@ -554,10 +554,13 @@ spring_anchor = None
 
 
 def change_fan_direction():
-    v = fan_shape.body.velocity
-    fan_shape.body.velocity = (v[0] * -1, v[1])
-    fan_base_shape.body.velocity = (v[0] * -1, v[1])
+    global fan_shape, fan_base_shape
 
+    v = fan_shape.body.velocity[0]
+
+    if (fan_shape.body.position[0] < fan_bounds[0] and v < 0) or (fan_shape.body.position[0] > fan_bounds[1] and v > 0):
+        fan_shape.body.velocity = (v * -1, 0)
+        fan_base_shape.body.velocity = (v * -1, 0)
 
 
 def draw(space):
