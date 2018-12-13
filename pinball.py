@@ -36,7 +36,8 @@ collision_types = {
     "powerup": 4,
     "trans1": 5,
     "trans2": 6,
-    "fan": 7
+    "fan": 7,
+    "block":8
 }
 pow_timewait= {#adjust all values to -1 if you want to stop power ups from appearing
     "blue": 100,
@@ -332,7 +333,7 @@ def spawn_ball(space, position, direction):
 
     # Keep ball velocity at a static value
     space.add(ball_body, ball_shape)
-
+    return ball_body
 
 def add_paddles(space):
     pointer_body = pymunk.Body(body_type=pymunk.Body.STATIC)
@@ -374,6 +375,7 @@ def add_paddles(space):
     space.add(paddle_body_1, paddle_shape_1, rotary_spring, pinjoint)
     space.add(paddle_body_2, paddle_shape_2, rotary_spring2, pinjoint2)
     return rotary_spring, rotary_spring2
+
 
 
 def setup_level(space):
@@ -487,7 +489,32 @@ def add_fan(space, fan_width, fan_height, position, speed, bounds):
     space.add(fan_body, fan_shape, fan_base_body, fan_base_shape)
 
     return fan_shape, fan_base_shape
+def spawn_block(space):
+    body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
+    body.position = (558,587)
+    body.velocity = (100,0)
+    # body_width = 22
+    # body_height =125
+    #block= pymunk.Poly(body,(557,525),(557,650),22)#height of 125 at all times
+    block = pymunk.Poly.create_box(body,(44,125))  # height of 125 at all times
+    block.color = line_color
+    block.collision_type=collision_types["block"]
+    #print(block.body.position.y)
+    space.add(body,block)
+    return block
 
+# (550,775) to (550,500)
+def check_block(block_up,block,ball_body):
+    #print(block.body.position)
+    if block_up is False and block.body.position[1]>587:
+      #  print("going down")
+        block.body.velocity=(0,-1000)
+    if block_up is True and block.body.position[1]<712:
+       # print("going up")
+        if ball_body.position[1]>=725:
+            block.body.velocity=(0,300)
+    if (block_up is False and block.body.position[1]<=587) or (block_up is True and block.body.position[1]>=712):
+        block.body.velocity=(0,0)
 
 def add_boundaries(space):
     radius = 15
@@ -539,7 +566,6 @@ def draw(space):
     if fan_shape.body.position[0] > fan_bounds[1] or fan_shape.body.position[0] < fan_bounds[0]:
         change_fan_direction()
 
-
     for shape in space.shapes:
 
         color = THECOLORS["lightgray"]
@@ -557,6 +583,8 @@ def draw(space):
                 draw_options, shape.a, shape.b, shape.radius, color, color)
 
         elif type(shape) == pymunk.shapes.Poly:
+            # if shape.collision_type == collision_types["block"]:
+            #     pygame.display.get_surface().blit(fan_surface, (shape.body.position[0], height - 125 - shape.body.position[1]))
             if not shape.collision_type == collision_types["fan"]:
                 position = shape.body.position
                 local_vertices = shape.get_vertices()
@@ -569,6 +597,7 @@ def draw(space):
                     world_vertices.append(new_vertex)
                 pymunk.pygame_util.DrawOptions.draw_polygon(
                     draw_options, world_vertices, shape.radius, color, color)
+
             else:
                 fan_height = shape.get_vertices()[3][1]
                 pygame.display.get_surface().blit(fan_surface, (shape.body.position[0], height - fan_height - shape.body.position[1]))
@@ -626,29 +655,36 @@ def main():
     transport_surface.fill(transport_color)
 
     spring = add_spring(space)
-
+    block_up = False
+    block = spawn_block(space)
     rotary_spring, rotary_spring2 = add_paddles(space)
 
     image = pygame.image.load("background.jpg")
 
     # Start game
     setup_level(space)
-
+    temp_ballbody = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
     while running:
         global score
         global gameOver
         check_powerup(space)
+        check_block(block_up, block,temp_ballbody)
         for event in pygame.event.get():
             if event.type == QUIT:
                 running = False
             elif event.type == KEYDOWN and (event.key in [K_ESCAPE, K_q]):
                 running = False
             elif event.type == KEYDOWN and event.key == K_SPACE:
+                block_up=False
+                #check_block(block_up, block,temp_ballbody)
                 spring.rest_length = 10
-                spawn_ball(space, (600, 300), (0, 0))
+                temp_ballbody=spawn_ball(space, (600, 300), (0, 0))
 
             elif event.type == KEYUP and event.key == K_SPACE:
                 spring.rest_length = 150
+
+                block_up=True
+                #check_block(block_up, block,temp_ballbody)
 
             if event.type == KEYDOWN and event.key == K_LEFT:
                 rotary_spring.rest_angle = math.pi / 5
