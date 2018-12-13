@@ -5,7 +5,8 @@ import pygame
 import pymunk
 import pymunk.pygame_util
 import Animator
-
+import sched, time
+from threading import *
 from pygame.locals import *
 from pygame.color import *
 from pymunk import Vec2d
@@ -17,6 +18,9 @@ bumper_color = (255, 224, 102)
 transport_color = (74, 86, 104)
 screen_color = (80, 81, 79)
 ball_color = (237, 247, 246)
+
+s = sched.scheduler(time.time, time.sleep)
+
 
 width, height = 680, 910
 score = 0
@@ -47,6 +51,7 @@ pow_timewait= {#adjust all values to -1 if you want to stop power ups from appea
 }
 
 black = (0,0,0)
+
 
 
 def add_bumper(space, location, radius):
@@ -169,10 +174,31 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
             # ball_body.apply_impulse_at_world_point(impulse, (ball_body.position[0], ball_body.position[1]))
             v = ball_body.velocity
             # ball_body.velocity = (v[0] * 1.5, v[1] * 1.5)
-            if space.gravity == (0,-100):
-                space.gravity = (0,-600)
-            else:
-                space.gravity = (0, -100)
+            space.gravity = (0, -100)
+            print("gravitiy is made zero")
+
+
+            def change_back():
+                space.gravity = (0, -600)
+                print("gravity is changed back to normal")
+
+            # create thread
+            t = Timer(5.0, change_back)
+
+            # start thread after 10 seconds
+            t.start()
+            # def do_something(sc):
+            #     space.gravity = (0, -600)
+            #     print("gravity changed back")
+            #     # do your stuff
+            #     s.enter(5, 1, do_something, (sc,))
+            #
+            # s.enter(5, 1, do_something, (s,))
+            # s.run()
+            # if space.gravity == (0,-100):
+            #     space.gravity = (0,-600)
+            # else:
+            #     space.gravity = (0, -100)
 
         elif (circ.color == THECOLORS["red"]):  # adds new ball in screen and makes ball go faster
             print("both")
