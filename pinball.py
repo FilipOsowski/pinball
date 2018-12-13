@@ -14,7 +14,7 @@ from pymunk import Vec2d
 line_color = (49, 62, 80)
 spring_color = (112, 193, 179)
 paddle_color = (242, 95, 92)
-bumper_color = (255, 224, 102)
+bumper_color = (217, 191, 87)
 transport_color = (74, 86, 104)
 screen_color = (80, 81, 79)
 ball_color = (237, 247, 246)
@@ -32,6 +32,9 @@ fan_bounds = (100, 500)
 animators = []
 gameDisplay = pygame.display.set_mode((680, 910))
 clock = pygame.time.Clock()
+transport_surface = pygame.Surface((14, 300))
+transport_surface.fill(transport_color)
+
 
 collision_types = {
     "ball": 1,
@@ -91,7 +94,7 @@ def add_bumper_collision_handler(space):
             s.set_colorkey((0, 0, 0))
             s.set_alpha(255 * (1 - percentage_complete))
             # pygame.draw.circle(s, (233, 255, 166), (int(pos.x), int(height - pos.y)), int(radius))
-            pygame.draw.circle(s, (233, 255, 166), (26, 26), int(radius))
+            pygame.draw.circle(s, (255, 232, 140), (26, 26), int(radius))
             screen.blit(s, (int(pos.x - radius), int(height - pos.y - radius)))
 
 
@@ -589,8 +592,6 @@ def draw(space):
                 draw_options, shape.a, shape.b, shape.radius, color, color)
 
         elif type(shape) == pymunk.shapes.Poly:
-            # if shape.collision_type == collision_types["block"]:
-            #     pygame.display.get_surface().blit(fan_surface, (shape.body.position[0], height - 125 - shape.body.position[1]))
             if not shape.collision_type == collision_types["fan"]:
                 position = shape.body.position
                 local_vertices = shape.get_vertices()
@@ -608,11 +609,19 @@ def draw(space):
                 fan_height = shape.get_vertices()[3][1]
                 pygame.display.get_surface().blit(fan_surface, (shape.body.position[0], height - fan_height - shape.body.position[1]))
 
+    screen = pygame.display.get_surface()
+    screen.blit(transport_surface, (transport_coordinates[1][0] - 5,
+                                    height - transport_coordinates[1][1]))
+    screen.blit(transport_surface, (transport_coordinates[3][0] - 5,
+                                                height - transport_coordinates[3][1]))
+
     for a in animators:
         if a.is_done():
             animators.remove(a)
         else:
             a.animate()
+
+
 def game_intro():
     intro = True
 
@@ -654,11 +663,9 @@ def main():
     space.gravity = (0, -600)
     space.damping = 0.9
 
-    transport_surface = pygame.Surface((14, 300))
     intro = pygame.Surface((680, 910))
 
     intro.fill(transport_color)
-    transport_surface.fill(transport_color)
 
     spring = add_spring(space)
     block_up = False
@@ -734,12 +741,6 @@ def main():
             (0, height - 25))
         screen.blit(
             font.render("Score: " + str(score), 1, THECOLORS["white"]), (0, 0))
-        draw(space)
-
-        screen.blit(transport_surface, (transport_coordinates[1][0] - 5,
-                                        height - transport_coordinates[1][1]))
-        screen.blit(transport_surface, (transport_coordinates[3][0] - 5,
-                                        height - transport_coordinates[3][1]))
         draw(space)
         if not started :
             screen.blit(intro, (0,0))
