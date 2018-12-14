@@ -44,7 +44,7 @@ collision_types = {
     "block":8
 }
 pow_timewait= {#adjust all values to -1 if you want to stop power ups from appearing
-    "blue": 100,
+    "blue": 100,#assigns the amount of frames the powerups might be waiting to be displayed/keeps track of which power ups are displayed
     "red": 0,
     "yellow": 120
 
@@ -120,7 +120,7 @@ def add_powerup(space,color,position): #adds circular power ups that affect ball
     pow.color = color
     space.add(pow,body)
     if color == THECOLORS["red"]:#once powerups are displayed sets dictionary value to -1
-        pow_timewait["red"]= -1
+        pow_timewait["red"]= -1#if value is -1 , then the ball is displayed so it will not be mistakenly displayed again
     if color == THECOLORS["yellow"]:
         pow_timewait["yellow"]=-1
     if color ==THECOLORS["blue"]:
@@ -155,15 +155,13 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
         ball = arbiter.shapes[1]
         if circ.color == THECOLORS["blue"]:  # Adjusts gravity of the game
             print("fast")
-            wait=150
+            wait=150#sets the amount of frames the power up will wait before it displays again
             color ="blue"
-
-
             # ball_body.apply_impulse_at_world_point(impulse, (ball_body.position[0], ball_body.position[1]))
-            # v = ball_body.velocity
+            #v = ball_body.velocity
             # ball_body.velocity = (v[0] * 1.5, v[1] * 1.5)
             space.gravity = (0, -100)
-            print("gravity is made zero")
+            print("gravitiy is made zero")
 
 
             def change_back():
@@ -175,9 +173,20 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
 
             # start thread after 10 seconds
             t.start()
+            # def do_something(sc):
+            #     space.gravity = (0, -600)
+            #     print("gravity changed back")
+            #     # do your stuff
+            #     s.enter(5, 1, do_something, (sc,))
+            #
+            # s.enter(5, 1, do_something, (s,))
+            # s.run()
+            # if space.gravity == (0,-100):
+            #     space.gravity = (0,-600)
+            # else:
+            #     space.gravity = (0, -100)
 
-
-        elif (circ.color == THECOLORS["red"]):  # adds new ball in screen and makes ball go faster
+        elif (circ.color == THECOLORS["red"]):  # makes ball go faster
             print("both")
             color = "red"
             def normalized_vector_between(a, b):
@@ -193,38 +202,38 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
             impulse = normalized_vector_between(bumper_body, ball_body)
             impulse = [impulse[0] * strength_of_bumper, impulse[1] * strength_of_bumper]
 
-            ball_body.apply_impulse_at_world_point(impulse, (ball_body.position[0], ball_body.position[1]))
-            wait=600
-            spawn_ball(space, (random.randint(50, 550), 500), (random.randint(-100, 100), random.randint(-100, 100)))
+            ball_body.apply_impulse_at_world_point(impulse, (ball_body.position[0], ball_body.position[1]))#adds an impulse to the ball to make it go faster in the vector direction
+            wait=600#sets the amount of frames the power up will wait before it displays again
         else:  # adds new ball in screen
             color="yellow"
             print("new")
-            wait= 250
-            spawn_ball(space, (random.randint(50, 550), 500), (random.randint(-100, 100), random.randint(-100, 100)))
+            wait= 250#sets the amount of frames the power up will wait before it displays again
+            spawn_ball(space, (random.randint(50, 550), 500), (random.randint(-100, 100), random.randint(-100, 100)))#spawns a new ball into the screen
         print(ball.body.velocity)
-        pow_timewait[color]=wait
-        space.remove(circ, circ.body)
+        pow_timewait[color]=wait#sets the amount of time the power up will now wait before it displays again
+        space.remove(circ, circ.body)#removes the power up from the space
 
         return False
 
         #respawn_powerup(color, space)
 
-    h = space.add_collision_handler(collision_types["powerup"], collision_types["ball"])
+    h = space.add_collision_handler(collision_types["powerup"], collision_types["ball"])#adds a collision handler between the power up and the ball
     h.begin = remove_pow
 def check_powerup(space):#checks to see if powerups are displaying
     for color in pow_timewait:
-        if color=="blue":
+        if color=="blue":#sets the position a blue power up would spawn in
             pos= (random.randint(100,475), random.randint(120,300))
         elif color == "red":
             pos= (random.randint(175,425),random.randint(500,725))
         elif color=="yellow":
             pos=(random.randint(75,150), 450)
-        if pow_timewait[color]==0:#displays powerups again after time has passed
+        if pow_timewait[color]==0:#displays powerups again after a specified time (set as var wait) has passed
             add_powerup(space,THECOLORS[color],pos)
-        elif pow_timewait[color]>0:#if they've been hit, counts down the time until they will reappear
+        elif pow_timewait[color]>0:#if power ups are not displaying (and are waiting for a certain amount of frames to pass before they display)
+            # counts down the number of frames that have passed until the power up will display again
             pow_timewait[color]-=1
 
-def add_transport(
+def add_transport(#adds transport segments that move ball from one side of the screen to the other
         space, posStart, posEnd, posStart2,
         posEnd2):  # adds segments that transport ball across the layout
     body = pymunk.Body(body_type=pymunk.Body.STATIC)
@@ -239,7 +248,7 @@ def add_transport(
     trans2.sensor = True
     space.add(trans, trans2)
 
-    def move_ball_left(
+    def move_ball_left(#translates the ball to the left segment after it collides witht he right
             arbiter, space, data
     ):  # changes ball's position to the left, after collision with the right segment
         global score
@@ -256,8 +265,8 @@ def add_transport(
             s = pygame.Surface((14, 300))
             s.fill((142, 150, 163))
             s.set_alpha(255 * (1 - percentage_complete))
-           # print("ALPHA IS")
-            #print(s.get_alpha())
+            print("ALPHA IS")
+            print(s.get_alpha())
             screen.blit(s, (transport_coordinates[1][0] - 5,
                                         height - transport_coordinates[1][1]))
         animators.append(Animator.Animator(20, animate))
@@ -282,8 +291,8 @@ def add_transport(
             s = pygame.Surface((14, 300))
             s.fill((142, 150, 163))
             s.set_alpha(255 * (1 - percentage_complete))
-            #print("ALPHA IS")
-            #print(s.get_alpha())
+            print("ALPHA IS")
+            print(s.get_alpha())
             screen.blit(s, (transport_coordinates[3][0] - 5,
                             height - transport_coordinates[3][1]))
         animators.append(Animator.Animator(20, animate))
@@ -303,22 +312,22 @@ def gen_rail(
         space, pInit, pFin
 ):  # generates series of short line segments to give impression of a curve
     rail = []
-    distX = (pFin[0] - pInit[0])
-    distY = (pFin[1] - pInit[1])
-    pX = pInit[0]
+    distX = (pFin[0] - pInit[0])#the x distance between the start and ending coordinates
+    distY = (pFin[1] - pInit[1])#the y distance between the start and end coordinates
+    pX = pInit[0]#the starting coordinates
     pY = pInit[1]
-    tot = 23
-    for num in range(tot):
+    tot = 23#total line segments
+    for num in range(tot):#adds in the segments so that they begin at the end of the last segment and end overall at the final coordinates (pm pFin)
         rail.append(
             pymunk.Segment(space.static_body, (pX, pY),
                            (pX + (distX / tot), pY + (distY / tot) +
                             ((tot / 2) - num) * 3), 15))
         pX += distX / tot
         pY += distY / tot
-        pY += ((tot / 2) - num) * 3
+        pY += ((tot / 2) - num) * 3#changes the y coordinates of the segments to increase/decrease by certain values (creates impression of a circular motion)
     for line in rail:
         line.color = line_color
-        line.elasticity = 0.21
+        line.elasticity = 0.21#sets the elasticity so the ball curves(following the curve of the line segments) when released
         space.add(line)
     return rail
 
@@ -405,9 +414,6 @@ def setup_level(space):
     add_bumper(space, (450, 600), 26)
     add_bumper(space, (300, 450), 26)
     add_powerup_collision_handler(space)  # adds power up obstacles that change ball
-    # add_powerup(space,THECOLORS["red"],(random.randint(250,400),random.randint(500,700)))
-    # add_powerup(space, THECOLORS["blue"], (random.randint(400,500), random.randint(80,150)))
-    # add_powerup(space, THECOLORS["yellow"], (150, random.randint(100,600)))
     check_powerup(space)#displays powerups, (if you dont want them displayed, set pow_timewait values to -1
 
     add_transport(
@@ -422,12 +428,12 @@ def setup_level(space):
 def add_out_of_bounds_collision_handler(space):
     def begin(arbiter, space, data):
         ball_shape = arbiter.shapes[0]
-        space.remove(ball_shape, ball_shape.body)  # removes ball if it collides with the out of bounds zone
-        global numLives  # gets the global variable for num lives
-        if numLives > -1:  # if the lives havent run out
+        space.remove(ball_shape, ball_shape.body)
+        global numLives
+        if numLives > -1:
 
-            space.remove(lives[numLives])# removes the lives from the screen
-            numLives -= 1 #subtracts a life
+            space.remove(lives[numLives])
+            numLives -= 1
 
         return True
 
@@ -492,31 +498,27 @@ def add_fan(space, fan_width, fan_height, position, speed, bounds):
     space.add(fan_body, fan_shape, fan_base_body, fan_base_shape)
 
     return fan_shape, fan_base_shape
-def spawn_block(space):
+def spawn_block(space):#spawns in a block to stop balls from going into the spawning/spring tunnel
     body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
     body.position = (558,587)
-    body.velocity = (100,0)
-    # body_width = 22
-    # body_height =125
-    #block= pymunk.Poly(body,(557,525),(557,650),22)#height of 125 at all times
+    body.velocity = (0,0)#sets the initial powerup
     block = pymunk.Poly.create_box(body,(44,125))  # height of 125 at all times
     block.color = line_color
+    block.elasticity = .5
     block.collision_type=collision_types["block"]
-    #print(block.body.position.y)
     space.add(body,block)
     return block
 
 # (550,775) to (550,500)
-def check_block(block_up,block,ball_body):
-    #print(block.body.position)
-    if block_up is False and block.body.position[1]>587:
+def check_block(block_up,block,ball_body):#checks if spring has been triggered and the stopper needs to be moved
+    if block_up is False and block.body.position[1]>587:#if the stopped is supposed to be hidden, yet is still at a coordinate, blocking the spring tunnel it is translated downwards
       #  print("going down")
-        block.body.velocity=(0,-1000)
-    if block_up is True and block.body.position[1]<712:
+        block.body.velocity=(0,-1000)#the negative velocity results in the blocker moving downwards and openning up the tunnel for a ball to leave
+    if block_up is True and block.body.position[1]<712:#translates the block up by giving it a positive y velocity
        # print("going up")
-        if ball_body.position[1]>=725:
+        if ball_body.position[1]>=700 or ball_body.position[0]<558:
             block.body.velocity=(0,300)
-    if (block_up is False and block.body.position[1]<=587) or (block_up is True and block.body.position[1]>=712):
+    if (block_up is False and block.body.position[1]<=587) or (block_up is True and block.body.position[1]>=712): #if the block is in its proper position it stops moving
         block.body.velocity=(0,0)
 
 def add_boundaries(space):
