@@ -5,30 +5,38 @@ import pygame
 import pymunk
 import pymunk.pygame_util
 import Animator
-
-
+import sched, time
+from threading import *
 from pygame.locals import *
 from pygame.color import *
 from pymunk import Vec2d
 
-ballsinplay = 0
-numLives = 2
 line_color = (49, 62, 80)
 spring_color = (112, 193, 179)
 paddle_color = (242, 95, 92)
-bumper_color = (255, 224, 102)
+bumper_color = (217, 191, 87)
 transport_color = (74, 86, 104)
 screen_color = (80, 81, 79)
 ball_color = (237, 247, 246)
 
+s = sched.scheduler(time.time, time.sleep)
+
+
 width, height = 680, 910
 score = 0
 lives = []
+numLives = 2
 transport_coordinates = [(58, 300), (58, 600), (541, 300), (541, 600)]
 fan_shape, fan_base_shape = None, None
 fan_bounds = (100, 500)
 animators = []
-
+gameDisplay = pygame.display.set_mode((680, 910))
+clock = pygame.time.Clock()
+ballsinplay = 0
+transport_surface = pygame.Surface((14, 300))
+block = None
+temp_ballbody = None
+transport_surface.fill(transport_color)
 
 
 collision_types = {
@@ -38,15 +46,30 @@ collision_types = {
     "powerup": 4,
     "trans1": 5,
     "trans2": 6,
-    "fan": 7
+    "fan": 7,
+    "block":8
 }
 pow_timewait= {#adjust all values to -1 if you want to stop power ups from appearing
-    "blue": 100,
+    "blue": 200,
     "red": 0,
-    "yellow": 120
+    "yellow": 240
 
 }
 
+black = (0,0,0)
+
+def text_popup(text, duration, size, color, position):
+    screen = pygame.display.get_surface()
+    dynamic_pos = [position[0], position[1]]
+    font = pygame.font.Font("Roboto-Black.ttf", size)
+    s = font.render(text, False, color)
+
+    def animate_text(percentage_complete):
+        s.set_alpha(255 * (1 - percentage_complete))
+        dynamic_pos[1] += 1
+        screen.blit(s, (dynamic_pos[0] - 13, height - dynamic_pos[1] - 25))
+
+    animators.append(Animator.Animator(duration, animate_text))
 
 
 def add_bumper(space, location, radius):
@@ -59,6 +82,9 @@ def add_bumper(space, location, radius):
 
     space.add(body, shape)
 
+def text_objects(text, font):
+    textSurface = font.render(text, True, black)
+    return textSurface, textSurface.get_rect()
 
 def add_bumper_collision_handler(space):
     ch = space.add_collision_handler(collision_types["ball"],
@@ -74,21 +100,6 @@ def add_bumper_collision_handler(space):
         bumper_body = arbiter.shapes[1].body
         ball_body = arbiter.shapes[0].body
 
-        radius = arbiter.shapes[1].radius
-        pos = bumper_body.position
-        screen = pygame.display.get_surface()
-
-        def animate(percentage_complete):
-            s = pygame.Surface((52, 52))
-            s.set_colorkey((0, 0, 0))
-            s.set_alpha(255 * (1 - percentage_complete))
-            # pygame.draw.circle(s, (233, 255, 166), (int(pos.x), int(height - pos.y)), int(radius))
-            pygame.draw.circle(s, (233, 255, 166), (26, 26), int(radius))
-            screen.blit(s, (int(pos.x - radius), int(height - pos.y - radius)))
-
-
-        animators.append(Animator.Animator(30, animate))
-
         strength_of_bumper = 20
         impulse = normalized_vector_between(bumper_body, ball_body)
         impulse = [
@@ -99,19 +110,33 @@ def add_bumper_collision_handler(space):
         ball_body.apply_impulse_at_world_point(
             impulse, (ball_body.position[0], ball_body.position[1]))
 
+
+        radius = arbiter.shapes[1].radius
+        pos = bumper_body.position
+        screen = pygame.display.get_surface()
+
+        def animate(percentage_complete):
+            s = pygame.Surface((52, 52))
+            s.set_colorkey((0, 0, 0))
+            s.set_alpha(255 * (1 - percentage_complete))
+            pygame.draw.circle(s, (255, 232, 140), (26, 26), int(radius))
+            screen.blit(s, (int(pos.x - radius), int(height - pos.y - radius)))
+
+        text_popup(text="1000", duration=30, size=25, color=(175, 174, 176), position=ball_body.position)
+        animators.append(Animator.Animator(30, animate))
+
     ch.post_solve = post_solve
 
 
-def add_powerup(space,color,position): #adds circular power ups that affect ball differently upon impact
+def add_powerup(space,color,position):  # adds circular power ups that affect ball differently upon impact
     body = pymunk.Body(body_type=pymunk.Body.STATIC)
     pow=pymunk.Circle(body,10)
     pow.sensor = True
-#    pow.density = 1.225
     pow.body.position= position
     pow.collision_type = collision_types["powerup"]
     pow.color = color
     space.add(pow,body)
-    if color == THECOLORS["red"]:#once powerups are displayed sets dictionary value to -1
+    if color == THECOLORS["red"]:  # once powerups are displayed sets dictionary value to -1
         pow_timewait["red"]= -1
     if color == THECOLORS["yellow"]:
         pow_timewait["yellow"]=-1
@@ -145,35 +170,26 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
     def remove_pow(arbiter, space, data):
         circ = arbiter.shapes[0]
         ball = arbiter.shapes[1]
-        if circ.color == THECOLORS["blue"]:  # makes ball go faster
-            # print("fast")
+        if circ.color == THECOLORS["blue"]:  # Adjusts gravity of the game
             wait=150
             color ="blue"
-            def normalized_vector_between(a, b):
-                v = [b.position[0] - a.position[0], b.position[1] - a.position[1]]
-                r = (v[0] ** 2 + v[1] ** 2) ** (1 / 2)
-                v = [v[0] / r, v[1] / r]
-                return v
+            space.gravity = (0, -100)
 
-            bumper_body = arbiter.shapes[0].body
-            ball_body = arbiter.shapes[1].body
+            def change_back():
+                space.gravity = (0, -600)
 
-            strength_of_bumper = 5
-            impulse = normalized_vector_between(bumper_body, ball_body)
-            impulse = [impulse[0] * strength_of_bumper, impulse[1] * strength_of_bumper]
-            # print("IMPULSE IS")
-            # print(impulse)
+            # create thread
+            t = Timer(5.0, change_back)
 
-            ball_body.apply_impulse_at_world_point(impulse, (ball_body.position[0], ball_body.position[1]))
-            v = ball_body.velocity
-            ball_body.velocity = (v[0] * 1.5, v[1] * 1.5)
+            # start thread after 10 seconds
+            t.start()
+
+            text_popup("LOW GRAVITY", 90, 30, (40, 40, 173), ball.body.position)
+
         elif (circ.color == THECOLORS["red"]):  # adds new ball in screen and makes ball go faster
-            # print("both")
+
+
             color = "red"
-            #adds a ball when red dot is hit
-            global ballsinplay
-            # ballsinplay += 1
-            print("ballsinplay", ballsinplay)
             def normalized_vector_between(a, b):
                 v = [b.position[0] - a.position[0], b.position[1] - a.position[1]]
                 r = (v[0] ** 2 + v[1] ** 2) ** (1 / 2)
@@ -189,29 +205,28 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
 
             ball_body.apply_impulse_at_world_point(impulse, (ball_body.position[0], ball_body.position[1]))
             wait=600
-            spawn_ball(space, (random.randint(50, 550), 500), (random.randint(-100, 100), random.randint(-100, 100)))
 
-        elif (circ.color == THECOLORS["yellow"]):  # adds new ball in screen
+            text_popup("SPEED BOOST", 90, 30, (173, 40, 40), ball_body.position)
+        else:  # adds new ball in screen
+            global ballsinplay
+            ballsinplay += 1
+
             color="yellow"
             wait= 250
             spawn_ball(space, (random.randint(50, 550), 500), (random.randint(-100, 100), random.randint(-100, 100)))
-            #adds 1 to ballsinplay when yellow dot is clicked
-            global ballsinplay
-            ballsinplay += 1
-            print("ballisinplay", ballsinplay)
-        # print(ball.body.velocity)
+
+            text_popup("EXTRA BALL", 90, 30, (173, 173, 40), ball.body.position)
+
         pow_timewait[color]=wait
         space.remove(circ, circ.body)
 
-
-
         return False
-
-        #respawn_powerup(color, space)
 
     h = space.add_collision_handler(collision_types["powerup"], collision_types["ball"])
     h.begin = remove_pow
-def check_powerup(space):#checks to see if powerups are displaying
+
+
+def check_powerup(space):  # checks to see if powerups are displaying
     for color in pow_timewait:
         if color=="blue":
             pos= (random.randint(100,475), random.randint(120,300))
@@ -219,9 +234,9 @@ def check_powerup(space):#checks to see if powerups are displaying
             pos= (random.randint(175,425),random.randint(500,725))
         elif color=="yellow":
             pos=(random.randint(75,150), 450)
-        if pow_timewait[color]==0:#displays powerups again after time has passed
+        if pow_timewait[color]==0:  # displays powerups again after time has passed
             add_powerup(space,THECOLORS[color],pos)
-        elif pow_timewait[color]>0:#if they've been hit, counts down the time until they will reappear
+        elif pow_timewait[color]>0:  # if they've been hit, counts down the time until they will reappear
             pow_timewait[color]-=1
 
 def add_transport(
@@ -246,7 +261,7 @@ def add_transport(
         score += 500
         ball = arbiter.shapes[0]
         space.remove(ball.body, ball)  # removes ball from space
-        spawn_ball(
+        ball = spawn_ball(
             space, (posStart[0] + 20, ball.body.position.y), ball.body.velocity
         )  # spawns ball in again with new velocity and in the left position
 
@@ -256,10 +271,10 @@ def add_transport(
             s = pygame.Surface((14, 300))
             s.fill((142, 150, 163))
             s.set_alpha(255 * (1 - percentage_complete))
-            # print("ALPHA IS")
-            # print(s.get_alpha())
             screen.blit(s, (transport_coordinates[1][0] - 5,
                                         height - transport_coordinates[1][1]))
+
+        text_popup(text="500", duration=30, size=25, color=(175, 174, 176), position=ball.position)
         animators.append(Animator.Animator(20, animate))
 
         return False
@@ -271,7 +286,7 @@ def add_transport(
         score += 500
         ball = arbiter.shapes[0]
         space.remove(ball.body, ball)
-        spawn_ball(
+        ball = spawn_ball(
             space, (posStart2[0] - 20, ball.body.position.y),
             ball.body.velocity
         )  # spawns ball in again with new velocity and in the right position
@@ -282,10 +297,10 @@ def add_transport(
             s = pygame.Surface((14, 300))
             s.fill((142, 150, 163))
             s.set_alpha(255 * (1 - percentage_complete))
-            # print("ALPHA IS")
-            # print(s.get_alpha())
             screen.blit(s, (transport_coordinates[3][0] - 5,
                             height - transport_coordinates[3][1]))
+
+        text_popup(text="500", duration=30, size=25, color=(175, 174, 176), position=ball.position)
         animators.append(Animator.Animator(20, animate))
 
         return False
@@ -336,7 +351,7 @@ def spawn_ball(space, position, direction):
 
     # Keep ball velocity at a static value
     space.add(ball_body, ball_shape)
-
+    return ball_body
 
 def add_paddles(space):
     pointer_body = pymunk.Body(body_type=pymunk.Body.STATIC)
@@ -380,6 +395,7 @@ def add_paddles(space):
     return rotary_spring, rotary_spring2
 
 
+
 def setup_level(space):
     # Adds bottom and upper boundaries
     add_boundaries(space)
@@ -404,10 +420,7 @@ def setup_level(space):
     add_bumper(space, (450, 600), 26)
     add_bumper(space, (300, 450), 26)
     add_powerup_collision_handler(space)  # adds power up obstacles that change ball
-    # add_powerup(space,THECOLORS["red"],(random.randint(250,400),random.randint(500,700)))
-    # add_powerup(space, THECOLORS["blue"], (random.randint(400,500), random.randint(80,150)))
-    # add_powerup(space, THECOLORS["yellow"], (150, random.randint(100,600)))
-    check_powerup(space)#displays powerups, (if you dont want them displayed, set pow_timewait values to -1
+    check_powerup(space)  # displays powerups, (if you dont want them displayed, set pow_timewait values to -1
 
     add_transport(
         space, transport_coordinates[0], transport_coordinates[1],
@@ -418,33 +431,26 @@ def setup_level(space):
     fan_shape, fan_base_shape = add_fan(space=space, fan_width=50, fan_height=300, position=(300, 175), speed=50, bounds=(75, 480))
 
 
-
-
 def add_out_of_bounds_collision_handler(space):
     def begin(arbiter, space, data):
         ball_shape = arbiter.shapes[0]
-        space.remove(ball_shape, ball_shape.body)
-        #subtracts from integer ballsinplay when a ball goes through paddles
-        print("inside begin")
+        space.remove(ball_shape, ball_shape.body)  # removes ball if it collides with the out of bounds zone
+
+        # checks if there are any balls left on the screen, and subtracts a life if there are none
+        global numLives  # gets the global variable for num lives
         global ballsinplay
         ballsinplay -= 1
-        print("bsllsinplay", ballsinplay)
 
-        #checks for balls on screen and then subtracts a life when ballsinplay is 0
-
-        global ballsinplay
         if ballsinplay == 0:
-            global numLives
-            numLives -= 1
-            space.remove(lives[numLives])
-            spawn_ball(space, (600, 300), (0, 0))
-            print("spawnball")
-            ballsinplay += 1
-            print("ballsinplay", ballsinplay)
+            if numLives > -1:  # if the lives haven't run out
+                space.remove(lives[numLives])  # removes the lives from the screen
+                numLives -= 1  # subtracts a life
+                global temp_ballbody
+                temp_ballbody = spawn_ball(space, (600, 300), (0, 0))
+                ballsinplay += 1
 
 
         return True
-
 
     h = space.add_collision_handler(collision_types["ball"],
                                     collision_types["out_of_bounds"])
@@ -508,6 +514,29 @@ def add_fan(space, fan_width, fan_height, position, speed, bounds):
 
     return fan_shape, fan_base_shape
 
+def spawn_block(space):
+    body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
+    body.position = (558,587)
+    body.velocity = (0,0)
+    block = pymunk.Poly.create_box(body,(44,125))  # height of 125 at all times
+    block.color = line_color
+    block.collision_type=collision_types["block"]
+    space.add(body,block)
+    return block
+
+
+def check_block(ball_body):  # (550,775) to (550,500)
+    ball_position = ball_body.position
+    block_position = block.body.position
+
+    if ball_position[0] > 536 and ball_position[1] > 400:
+        block.body.velocity = (0, -1000)
+    else:
+        block.body.velocity = (0, 200)
+
+    if (550 > block_position[1] and block.body.velocity.y < 0) or (712 < block_position[1] and block.body.velocity.y > 0):
+        block.body.velocity = (0, 0)
+
 
 def add_boundaries(space):
     radius = 15
@@ -539,7 +568,6 @@ def add_boundaries(space):
         line.color = THECOLORS["red"]
         line.sensor = True
 
-
     static_lines.append(out_of_bounds_area)
     space.add(static_lines)
 
@@ -548,20 +576,35 @@ spring_anchor = None
 
 
 def change_fan_direction():
-    v = fan_shape.body.velocity
-    fan_shape.body.velocity = (v[0] * -1, v[1])
-    fan_base_shape.body.velocity = (v[0] * -1, v[1])
+    global fan_shape, fan_base_shape
 
+    v = fan_shape.body.velocity[0]
+
+    if (fan_shape.body.position[0] < fan_bounds[0] and v < 0) or (fan_shape.body.position[0] > fan_bounds[1] and v > 0):
+        fan_shape.body.velocity = (v * -1, 0)
+        fan_base_shape.body.velocity = (v * -1, 0)
+
+def draw_trail(shape):
+    radius = shape.radius
+    local_pos = [shape.body.position.x, shape.body.position.y]
+    screen = pygame.display.get_surface()
+    def animate(percentage_complete):
+        print("SHAPE POSITION" + str(shape.body.position))
+        s = pygame.Surface((radius * 2, radius * 2))
+        s.set_alpha(255/20 * (1 - percentage_complete))
+        s.set_colorkey((0, 0, 0))
+        pygame.draw.circle(s, (237, 247, 246), (int(radius), int(radius)), int(radius * (1 - percentage_complete)))
+        screen.blit(s, (int(local_pos[0] - radius), int(height - local_pos[1] - radius)))
+    animators.append(Animator.Animator(15, animate))
 
 def draw(space):
     draw_options = pymunk.pygame_util.DrawOptions(pygame.display.get_surface())
+    screen = pygame.display.get_surface()
 
     if fan_shape.body.position[0] > fan_bounds[1] or fan_shape.body.position[0] < fan_bounds[0]:
         change_fan_direction()
 
-
     for shape in space.shapes:
-
         color = THECOLORS["lightgray"]
         try:
             color = shape.color
@@ -569,9 +612,13 @@ def draw(space):
             pass
 
         if type(shape) == pymunk.shapes.Circle:
+            if shape.collision_type == collision_types["ball"]:
+                draw_trail(shape)
+
             pymunk.pygame_util.DrawOptions.draw_circle(
                 draw_options, shape.body.position, shape.body.angle,
                 shape.radius, color, color)
+
         elif type(shape) == pymunk.shapes.Segment:
             pymunk.pygame_util.DrawOptions.draw_fat_segment(
                 draw_options, shape.a, shape.b, shape.radius, color, color)
@@ -589,9 +636,15 @@ def draw(space):
                     world_vertices.append(new_vertex)
                 pymunk.pygame_util.DrawOptions.draw_polygon(
                     draw_options, world_vertices, shape.radius, color, color)
+
             else:
                 fan_height = shape.get_vertices()[3][1]
-                pygame.display.get_surface().blit(fan_surface, (shape.body.position[0], height - fan_height - shape.body.position[1]))
+                screen.blit(fan_surface, (shape.body.position[0], height - fan_height - shape.body.position[1]))
+
+    screen.blit(transport_surface, (transport_coordinates[1][0] - 5,
+                                    height - transport_coordinates[1][1]))
+    screen.blit(transport_surface, (transport_coordinates[3][0] - 5,
+                                                height - transport_coordinates[3][1]))
 
     for a in animators:
         if a.is_done():
@@ -600,9 +653,32 @@ def draw(space):
             a.animate()
 
 
+def game_intro():
+    intro = True
+
+    while intro:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+
+        gameDisplay.fill(THECOLORS['whitesmoke'])
+        largeText = pygame.font.Font('freesansbold.ttf', 205)
+        TextSurf, TextRect = text_objects("Pinball", largeText)
+        TextRect.center = ((680 / 2), (910 / 2))
+        gameDisplay.blit(TextSurf, TextRect)
+        pygame.display.update()
+        clock.tick(15)
+
+
 def main():
     # PyGame init
     pygame.init()
+    started = False
+    global numLives
+    numLives = 2
+    gameOver = False
+
     screen = pygame.display.set_mode((width, height), RESIZABLE)
     clock = pygame.time.Clock()
     running = True
@@ -617,38 +693,46 @@ def main():
     space.gravity = (0, -600)
     space.damping = 0.9
 
-    transport_surface = pygame.Surface((14, 300))
-    transport_surface.fill(transport_color)
+    intro = pygame.Surface((680, 910))
+
+    intro.fill(transport_color)
 
     spring = add_spring(space)
+    block_up = False
 
+    global block
+    block = spawn_block(space)
     rotary_spring, rotary_spring2 = add_paddles(space)
 
     image = pygame.image.load("background.jpg")
 
     # Start game
-    setup_level(space)
-    spawn_ball(space, (600, 300), (0, 0))
-    # initial ball
+
     global ballsinplay
     ballsinplay += 1
-    print("ballsinplay", ballsinplay)
 
+    setup_level(space)
+
+    global temp_ballbody
+    temp_ballbody = spawn_ball(space, (600, 300), (0, 0))
     while running:
         global score
+        global gameOver
         check_powerup(space)
-
+        check_block(temp_ballbody)
         for event in pygame.event.get():
             if event.type == QUIT:
                 running = False
             elif event.type == KEYDOWN and (event.key in [K_ESCAPE, K_q]):
                 running = False
             elif event.type == KEYDOWN and event.key == K_SPACE:
+                block_up=False
                 spring.rest_length = 10
-                # spawn_ball(space, (600, 300), (0, 0))
 
             elif event.type == KEYUP and event.key == K_SPACE:
                 spring.rest_length = 150
+
+                block_up=True
 
             if event.type == KEYDOWN and event.key == K_LEFT:
                 rotary_spring.rest_angle = math.pi / 5
@@ -658,9 +742,20 @@ def main():
                 rotary_spring2.rest_angle = -6 * math.pi / 5
             if event.type == KEYUP and event.key == K_RIGHT:
                 rotary_spring2.rest_angle = -8 * math.pi / 5
+            if event.type == MOUSEBUTTONDOWN:
+                started = True
+                if gameOver:
+                    gameOver = False
+                    numLives=2
+                    space.add(lives[0])
+                    space.add(lives[1])
+                    space.add(lives[2])
+                    score = 0
 
+        if numLives <= -1:
+            gameOver = True
 
-    # Clear screen
+        # Clear screen
         screen.fill(screen_color)
 
         # Draw stuff
@@ -674,16 +769,22 @@ def main():
 
         # Info and flip screen
         screen.blit(image, (0, 0))
+        largeText = pygame.font.Font('freesansbold.ttf', 205)
+
         screen.blit(
             font.render("fps: " + str(clock.get_fps()), 1, THECOLORS["white"]),
             (0, height - 25))
         screen.blit(
             font.render("Score: " + str(score), 1, THECOLORS["white"]), (0, 0))
-        screen.blit(transport_surface, (transport_coordinates[1][0] - 5,
-                                        height - transport_coordinates[1][1]))
-        screen.blit(transport_surface, (transport_coordinates[3][0] - 5,
-                                        height - transport_coordinates[3][1]))
         draw(space)
+        if not started :
+            screen.blit(intro, (0,0))
+            screen.blit(font.render("Pinball ", 1, THECOLORS["white"]), (300, 455))
+        if gameOver:
+            screen.blit(intro, (0, 0))
+            screen.blit(font.render("Game Over", 1, THECOLORS["white"]), (300, 455))
+            screen.blit(font.render("Score:  " + str(score), 1, THECOLORS["white"]), (300, 490))
+
         pygame.display.flip()
         clock.tick(fps)
 
