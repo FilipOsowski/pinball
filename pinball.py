@@ -32,7 +32,10 @@ fan_bounds = (100, 500)
 animators = []
 gameDisplay = pygame.display.set_mode((680, 910))
 clock = pygame.time.Clock()
+ballsinplay = 0
 transport_surface = pygame.Surface((14, 300))
+block = None
+temp_ballbody = None
 transport_surface.fill(transport_color)
 
 
@@ -93,10 +96,8 @@ def add_bumper_collision_handler(space):
             s = pygame.Surface((52, 52))
             s.set_colorkey((0, 0, 0))
             s.set_alpha(255 * (1 - percentage_complete))
-            # pygame.draw.circle(s, (233, 255, 166), (int(pos.x), int(height - pos.y)), int(radius))
             pygame.draw.circle(s, (255, 232, 140), (26, 26), int(radius))
             screen.blit(s, (int(pos.x - radius), int(height - pos.y - radius)))
-
 
         animators.append(Animator.Animator(30, animate))
 
@@ -113,16 +114,15 @@ def add_bumper_collision_handler(space):
     ch.post_solve = post_solve
 
 
-def add_powerup(space,color,position): #adds circular power ups that affect ball differently upon impact
+def add_powerup(space,color,position):  # adds circular power ups that affect ball differently upon impact
     body = pymunk.Body(body_type=pymunk.Body.STATIC)
     pow=pymunk.Circle(body,10)
     pow.sensor = True
-#    pow.density = 1.225
     pow.body.position= position
     pow.collision_type = collision_types["powerup"]
     pow.color = color
     space.add(pow,body)
-    if color == THECOLORS["red"]:#once powerups are displayed sets dictionary value to -1
+    if color == THECOLORS["red"]:  # once powerups are displayed sets dictionary value to -1
         pow_timewait["red"]= -1
     if color == THECOLORS["yellow"]:
         pow_timewait["yellow"]=-1
@@ -157,21 +157,13 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
         circ = arbiter.shapes[0]
         ball = arbiter.shapes[1]
         if circ.color == THECOLORS["blue"]:  # Adjusts gravity of the game
-            print("fast")
             wait=150
             color ="blue"
-
-
-            # ball_body.apply_impulse_at_world_point(impulse, (ball_body.position[0], ball_body.position[1]))
-            # v = ball_body.velocity
-            # ball_body.velocity = (v[0] * 1.5, v[1] * 1.5)
             space.gravity = (0, -100)
-            print("gravity is made zero")
 
 
             def change_back():
                 space.gravity = (0, -600)
-                print("gravity is changed back to normal")
 
             # create thread
             t = Timer(5.0, change_back)
@@ -179,9 +171,10 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
             # start thread after 10 seconds
             t.start()
 
-
         elif (circ.color == THECOLORS["red"]):  # adds new ball in screen and makes ball go faster
-            print("both")
+            global ballsinplay
+            ballsinplay += 1
+
             color = "red"
             def normalized_vector_between(a, b):
                 v = [b.position[0] - a.position[0], b.position[1] - a.position[1]]
@@ -200,21 +193,22 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
             wait=600
             spawn_ball(space, (random.randint(50, 550), 500), (random.randint(-100, 100), random.randint(-100, 100)))
         else:  # adds new ball in screen
+            global ballsinplay
+            ballsinplay += 1
+
             color="yellow"
-            print("new")
             wait= 250
             spawn_ball(space, (random.randint(50, 550), 500), (random.randint(-100, 100), random.randint(-100, 100)))
-        print(ball.body.velocity)
         pow_timewait[color]=wait
         space.remove(circ, circ.body)
 
         return False
 
-        #respawn_powerup(color, space)
-
     h = space.add_collision_handler(collision_types["powerup"], collision_types["ball"])
     h.begin = remove_pow
-def check_powerup(space):#checks to see if powerups are displaying
+
+
+def check_powerup(space):  # checks to see if powerups are displaying
     for color in pow_timewait:
         if color=="blue":
             pos= (random.randint(100,475), random.randint(120,300))
@@ -222,9 +216,9 @@ def check_powerup(space):#checks to see if powerups are displaying
             pos= (random.randint(175,425),random.randint(500,725))
         elif color=="yellow":
             pos=(random.randint(75,150), 450)
-        if pow_timewait[color]==0:#displays powerups again after time has passed
+        if pow_timewait[color]==0:  # displays powerups again after time has passed
             add_powerup(space,THECOLORS[color],pos)
-        elif pow_timewait[color]>0:#if they've been hit, counts down the time until they will reappear
+        elif pow_timewait[color]>0:  # if they've been hit, counts down the time until they will reappear
             pow_timewait[color]-=1
 
 def add_transport(
@@ -259,8 +253,6 @@ def add_transport(
             s = pygame.Surface((14, 300))
             s.fill((142, 150, 163))
             s.set_alpha(255 * (1 - percentage_complete))
-           # print("ALPHA IS")
-            #print(s.get_alpha())
             screen.blit(s, (transport_coordinates[1][0] - 5,
                                         height - transport_coordinates[1][1]))
         animators.append(Animator.Animator(20, animate))
@@ -285,8 +277,6 @@ def add_transport(
             s = pygame.Surface((14, 300))
             s.fill((142, 150, 163))
             s.set_alpha(255 * (1 - percentage_complete))
-            #print("ALPHA IS")
-            #print(s.get_alpha())
             screen.blit(s, (transport_coordinates[3][0] - 5,
                             height - transport_coordinates[3][1]))
         animators.append(Animator.Animator(20, animate))
@@ -408,10 +398,7 @@ def setup_level(space):
     add_bumper(space, (450, 600), 26)
     add_bumper(space, (300, 450), 26)
     add_powerup_collision_handler(space)  # adds power up obstacles that change ball
-    # add_powerup(space,THECOLORS["red"],(random.randint(250,400),random.randint(500,700)))
-    # add_powerup(space, THECOLORS["blue"], (random.randint(400,500), random.randint(80,150)))
-    # add_powerup(space, THECOLORS["yellow"], (150, random.randint(100,600)))
-    check_powerup(space)#displays powerups, (if you dont want them displayed, set pow_timewait values to -1
+    check_powerup(space)  # displays powerups, (if you dont want them displayed, set pow_timewait values to -1
 
     add_transport(
         space, transport_coordinates[0], transport_coordinates[1],
@@ -426,11 +413,20 @@ def add_out_of_bounds_collision_handler(space):
     def begin(arbiter, space, data):
         ball_shape = arbiter.shapes[0]
         space.remove(ball_shape, ball_shape.body)  # removes ball if it collides with the out of bounds zone
-        global numLives  # gets the global variable for num lives
-        if numLives > -1:  # if the lives havent run out
 
-            space.remove(lives[numLives])# removes the lives from the screen
-            numLives -= 1 #subtracts a life
+
+        global numLives  # gets the global variable for num lives
+        global ballsinplay
+        ballsinplay -= 1
+
+        if ballsinplay == 0:
+            if numLives > -1:  # if the lives haven't run out
+                space.remove(lives[numLives])  # removes the lives from the screen
+                numLives -= 1  # subtracts a life
+                global temp_ballbody
+                temp_ballbody = spawn_ball(space, (600, 300), (0, 0))
+                ballsinplay += 1
+
 
         return True
 
@@ -495,32 +491,30 @@ def add_fan(space, fan_width, fan_height, position, speed, bounds):
     space.add(fan_body, fan_shape, fan_base_body, fan_base_shape)
 
     return fan_shape, fan_base_shape
+
 def spawn_block(space):
     body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
     body.position = (558,587)
-    body.velocity = (100,0)
-    # body_width = 22
-    # body_height =125
-    #block= pymunk.Poly(body,(557,525),(557,650),22)#height of 125 at all times
+    body.velocity = (0,0)
     block = pymunk.Poly.create_box(body,(44,125))  # height of 125 at all times
     block.color = line_color
     block.collision_type=collision_types["block"]
-    #print(block.body.position.y)
     space.add(body,block)
     return block
 
-# (550,775) to (550,500)
-def check_block(block_up,block,ball_body):
-    #print(block.body.position)
-    if block_up is False and block.body.position[1]>587:
-      #  print("going down")
-        block.body.velocity=(0,-1000)
-    if block_up is True and block.body.position[1]<712:
-       # print("going up")
-        if ball_body.position[1]>=725:
-            block.body.velocity=(0,300)
-    if (block_up is False and block.body.position[1]<=587) or (block_up is True and block.body.position[1]>=712):
-        block.body.velocity=(0,0)
+
+def check_block(ball_body):  # (550,775) to (550,500)
+    ball_position = ball_body.position
+    block_position = block.body.position
+
+    if ball_position[0] > 536 and ball_position[1] > 400:
+        block.body.velocity = (0, -1000)
+    else:
+        block.body.velocity = (0, 200)
+
+    if (550 > block_position[1] and block.body.velocity.y < 0) or (712 < block_position[1] and block.body.velocity.y > 0):
+        block.body.velocity = (0, 0)
+
 
 def add_boundaries(space):
     radius = 15
@@ -627,7 +621,6 @@ def game_intro():
 
     while intro:
         for event in pygame.event.get():
-            print(event)
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
@@ -669,19 +662,27 @@ def main():
 
     spring = add_spring(space)
     block_up = False
+
+    global block
     block = spawn_block(space)
     rotary_spring, rotary_spring2 = add_paddles(space)
 
     image = pygame.image.load("background.jpg")
 
     # Start game
+
+    global ballsinplay
+    ballsinplay += 1
+
     setup_level(space)
-    temp_ballbody = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
+
+    global temp_ballbody
+    temp_ballbody = spawn_ball(space, (600, 300), (0, 0))
     while running:
         global score
         global gameOver
         check_powerup(space)
-        check_block(block_up, block,temp_ballbody)
+        check_block(temp_ballbody)
         for event in pygame.event.get():
             if event.type == QUIT:
                 running = False
@@ -689,15 +690,12 @@ def main():
                 running = False
             elif event.type == KEYDOWN and event.key == K_SPACE:
                 block_up=False
-                #check_block(block_up, block,temp_ballbody)
                 spring.rest_length = 10
-                temp_ballbody=spawn_ball(space, (600, 300), (0, 0))
 
             elif event.type == KEYUP and event.key == K_SPACE:
                 spring.rest_length = 150
 
                 block_up=True
-                #check_block(block_up, block,temp_ballbody)
 
             if event.type == KEYDOWN and event.key == K_LEFT:
                 rotary_spring.rest_angle = math.pi / 5
@@ -708,6 +706,7 @@ def main():
             if event.type == KEYUP and event.key == K_RIGHT:
                 rotary_spring2.rest_angle = -8 * math.pi / 5
             if event.type == MOUSEBUTTONDOWN:
+                print(pygame.mouse.get_pos())
                 started = True
                 if gameOver:
                     gameOver = False
