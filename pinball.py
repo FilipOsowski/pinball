@@ -187,8 +187,7 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
             text_popup("LOW GRAVITY", 90, 30, (40, 40, 173), ball.body.position)
 
         elif (circ.color == THECOLORS["red"]):  # adds new ball in screen and makes ball go faster
-            global ballsinplay
-            ballsinplay += 1
+
 
             color = "red"
             def normalized_vector_between(a, b):
@@ -206,7 +205,6 @@ def add_powerup_collision_handler(space):  # collision between ball and powerup
 
             ball_body.apply_impulse_at_world_point(impulse, (ball_body.position[0], ball_body.position[1]))
             wait=600
-            spawn_ball(space, (random.randint(50, 550), 500), (random.randint(-100, 100), random.randint(-100, 100)))
 
             text_popup("SPEED BOOST", 90, 30, (173, 40, 40), ball_body.position)
         else:  # adds new ball in screen
@@ -438,7 +436,7 @@ def add_out_of_bounds_collision_handler(space):
         ball_shape = arbiter.shapes[0]
         space.remove(ball_shape, ball_shape.body)  # removes ball if it collides with the out of bounds zone
 
-
+        # checks if there are any balls left on the screen, and subtracts a life if there are none
         global numLives  # gets the global variable for num lives
         global ballsinplay
         ballsinplay -= 1
